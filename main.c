@@ -1,8 +1,17 @@
 #include <stdio.h>
 
+void setup() {
+
+}
+
+void loop() {
+
+}
+
 int main(void)
 {
-    printf("Hello World!\n");
-    return 0;
+  setup();
+  for (;;) loop();
+  return 0;
 }
 
