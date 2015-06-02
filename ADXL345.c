@@ -1,125 +1,96 @@
 /*
-Basic readout of ADXL345v2 accelerometer via I2C
-
-Oryginal code taken from the very bottom of this page:
-http://www.raspberrypi.org/forums/viewtopic.php?t=55834
-
-Updated by Jan Balewski, August 2014
+based on http://www.raspberrypi.org/forums/viewtopic.php?t=55834
 */
 
+#include <linux/i2c-dev.h>
 #include <wiringPiI2C.h>
+
 #include "ADXL345.h"
 #include "ADXL345_register.h"
 #include "logging.h"
 
 int adxl345_fd = -1;
 unsigned char adxl345_adr = 0x00;
+ADXL_RANGE_MODE adxl345_range_mode = -1;
 
-int ADXL345_init(unsigned char adr) {
+/* private */
+int select_device() {
+  return ioctl(adxl345_fd, I2C_SLAVE, adxl345_adr);
+}
 
-  /*  int wiringPiI2CSetup (int devId) ;
-  The return value is the standard Linux filehandle,
-  or -1 if any error – in which case, you can consult errno as usual.
-  */
+int write_device(char* buf, int len) {
+  return write(adxl345_fd, buf, len);
+}
 
+int read_device(char* buf, int len) {
+  return read(adxl345_fd, buf, len);
+}
+
+/* public */
+int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode) {
   int fd = wiringPiI2CSetup(adr);
   if (fd < 0)  {
-    return errno;
+    return -1;
   }
-
-  int rc = wiringPiI2CWriteReg8(fd, POWER_CTL, PCTL_MEASURE); //put into measure mode
-  if (rc) return rc;
-
-  rc = wiringPiI2CWriteReg8(fd, DATA_FORMAT, FULL_RES | RANGE_PM_4g);
-  if (rc) return rc;
-
   adxl345_fd = fd;
   adxl345_adr = adr;
+  adxl345_range_mode = range_mode;
+
+  char buf[2];
+//put into measure mode
+  buf[0] = POWER_CTL;
+  buf[1] = PCTL_MEASURE;
+
+  int rc = write_device(buf, 2);
+  if (2 != rc) return -2;
+
+  int range_bits = 0;
+  switch (range_mode)
+  {
+  case ADXL_RANGE_2g:
+    range_bits = RANGE_PM_2g;
+    break;
+  case ADXL_RANGE_4g:
+    range_bits = RANGE_PM_4g;
+    break;
+  case ADXL_RANGE_8g:
+    range_bits = RANGE_PM_8g;
+    break;
+  case ADXL_RANGE_16g:
+    range_bits = RANGE_PM_16g;
+    break;
+  default:
+    LOG_ERROR("Invalid ADXL range mode: %d", range_mode);
+    return -3;
+    break;
+  }
+
+  //set resolution
+  buf[0] = DATA_FORMAT;
+  buf[1] = FULL_RES | range_bits;
+  rc = write_device(buf, 2);
+  if (2 != rc) return -4;
+
   LOG_DEBUG("ADXL345 on adr 0x%x init OK\n", adr);
   return 0;
 }
-int ADXL345_read(short* acc_x, short* acc_y, short* acc_z) {
 
+int ADXL345_read(double* acc_x, double* acc_y, double* acc_z) {
+  int rc = select_device();
+  if (rc) return rc;
+
+  char buf[6];
+  buf[0] = DATAX0;
+
+  rc = write_device(buf, 2); // Not 1?
+  if (2 != rc) return -1;
+
+  //in highres mode the output is 0.004g per digit
+  rc = read_device(buf, 6);
+  if (6 != rc) return -2;
+
+  double k = 0.004;
+  *acc_x = k * ((buf[1] << 8) | buf[0]);
+  *acc_y = k * ((buf[3] << 8) | buf[2]);
+  *acc_z = k * ((buf[5] << 8) | buf[4]);
 }
-
-//==========================================
-//==========================================
-int select_device() {
-
-  if (ioctl(fd, I2C_SLAVE, devId) < 0) {
-    fprintf(stderr, "device 0x%x ADXL345v2 not present\n", devId);
-    return false;
-  }
-
-  return true;
-}
-
-
-//==========================================
-//==========================================
-bool ADXL345v2::writeToDevice(char * buf, int len){
-  if (write(fd, buf, len) != len)   {
-    fprintf(stderr, "Can't write to device ADXL345v2 buf=%s len=%d\n", fd, buf, len);
-    return false;
-  }
-  return true;
-}
-
-
-//===============
-bool  ADXL345v2::readXYZ(short &x, short &y, short &z) {
-  assert(fd > 0); // crash if port was not opened earlier
-  if (!selectDevice())   return false;
-  //   printf("selectDevice(fd,ADXL345v2...)  passed\n");
-  char buf[7];
-  buf[0] = 0x32;     // This is the register we wish to read from
-  if (!writeToDevice(buf, 2))     return false;
-
-  if (read(fd, buf, 6) != 6) {  // Read back data into buf[]
-    printf("Unable to read from slave for ADXL345v2\n");
-    return false;
-  }
-  else {
-    x = (buf[1] << 8) | buf[0];
-    y = (buf[3] << 8) | buf[2];
-    z = (buf[5] << 8) | buf[4];
-  }
-  return true;
-}
-
-
-//==========================================
-//==========================================
-//==========================================
-int ADXL345v2::init()  {
-
-  /*  int wiringPiI2CSetup (int devId) ;
-      The return value is the standard Linux filehandle,
-      or -1 if any error – in which case, you can consult errno as usual.
-      */
-
-  fd = wiringPiI2CSetup(devId);
-  if (fd < 0)  {
-    printf("failed init  ADXL345v2, ret=%d\n", fd); exit(1);
-  }
-
-
-  assert(fd > 0); // crash if port was not opened earlier
-  char buf[6];       // Buffer for data being read/ written on the i2c bus
-
-  if (!selectDevice()) return -1;
-
-  buf[0] = 0x2d;                   // Commands for performing a ranging
-  buf[1] = 0x18;
-
-  if (!writeToDevice(buf, 2))  return -2;
-
-
-  buf[0] = 0x31;              // Commands for performing a ranging
-  buf[1] = 0x0A; //09 4g , A 8g
-
-  if (!writeToDevice(buf, 2))  return -3;
-  printf("ADXL345v2::init() OK\n");
-  return 0;
-}
-
