@@ -8,5 +8,7 @@
  * BMP085    pressure + temperature
  * nRF24L01+ somwe radio                      */
 
+#include "ADXL345.h"
+
 
 #endif
