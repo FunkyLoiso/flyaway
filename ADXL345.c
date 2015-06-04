@@ -6,7 +6,7 @@ based on http://www.raspberrypi.org/forums/viewtopic.php?t=55834
 #include <wiringPiI2C.h>
 
 #include "ADXL345.h"
-#include "ADXL345_register.h"
+#include "ADXL345_registers.h"
 #include "logging.h"
 
 int adxl345_fd = -1;
