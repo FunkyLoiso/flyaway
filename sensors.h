@@ -9,6 +9,7 @@
  * nRF24L01+ somwe radio                      */
 
 #include "ADXL345.h"
+#include "ITG3200.h"
 
 
 #endif
