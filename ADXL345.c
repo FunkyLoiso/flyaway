@@ -82,14 +82,14 @@ int ADXL345_read(double* acc_x, double* acc_y, double* acc_z) {
   char buf[6];
   buf[0] = DATAX0;
 
-  rc = write_device(buf, 2); // Not 1?
-  if (2 != rc) return -1;
+  rc = write_device(buf, 1);
+  if (1 != rc) return -1;
 
   //in highres mode the output is 0.004g per digit
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
 
-  double k = 0.004;
+  double k = 0.004; // others say(90.0 / 256.0)
   *acc_x = k * ((buf[1] << 8) | buf[0]);
   *acc_y = k * ((buf[3] << 8) | buf[2]);
   *acc_z = k * ((buf[5] << 8) | buf[4]);

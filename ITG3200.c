@@ -7,7 +7,7 @@
 
 int ITG3200_fd = -1;
 unsigned char ITG3200_adr = 0x00;
-ITG3200_FILTER_BANDWIDTH ITG3200_bandwidth = -1;
+ITG3200_FILTER_BANDWIDTH ITG3200_filter_bandwidth = -1;
 ITG3200_SAMPLERATE_DIVIDER ITG3200_divider = -1;
 
 /* private */
@@ -36,39 +36,39 @@ int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_
   }
   ITG3200_fd = fd;
   ITG3200_adr = adr;
-  ITG3200_bandwidth = bandwidth;
+  ITG3200_filter_bandwidth = bandwidth;
   ITG3200_divider = divider;
 
   char buf[2];
 
   //test read "who am I" register
-  buf[0] = WHO_AM_I;
-  int rc = write_device(buf, 2);
-  if (2 != rc) return -3;
+  buf[0] = ITG3200_WHOAMI;
+  int rc = write_device(buf, 1);
+  if (1 != rc) return -3;
 
   int rc = read_device(buf, 1);
   if (1 != rc) return -4;
 
-  if (buf[0] & 0x7E != 0x68) {
-    LOG_DEBUG("ITG3200 'who am I' is 0x%x, expected 0x%x", buf[0], 0x68);
+  if (buf[0] & 0x7E != ITG3200_ID_VAL) {
+    LOG_DEBUG("ITG3200 'who am I' is 0x%x, expected 0x%x", buf[0], ITG3200_ID_VAL);
     return -5;
   }
 
   //sample rate divider
-  buf[0] = SMPL_RATE_DIVIDER;
+  buf[0] = ITG3200_SMPLRT_DIV;
   buf[1] = divider;
   int rc = write_device(buf, 2);
   if (2 != rc) return -6;
 
   //scale and filter bandwidth
-  buf[0] = DIG_LOWPASS_FLTR;
-  buf[1] = (3 << 3) + bandwidth;
+  buf[0] = ITG3200_DLPF_FS;
+  buf[1] = FS_SEL_2000 | bandwidth; //FULL_SCALE in bits 3-4
   int rc = write_device(buf, 2);
   if (2 != rc) return -7;
 
   //set X Gyro oscilator as the clock reference. Recomended by the sheet
-  buf[0] = POWER_MGMNT;
-  buf[1] = 1;
+  buf[0] = ITG3200_PWR_MGM;
+  buf[1] = PWR_MGM_CLK_SEL_X;
   int rc = write_device(buf, 2);
   if (2 != rc) return -8;
 
@@ -76,22 +76,44 @@ int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_
   return 0;
 }
 
-int ADXL345_read(double* acc_x, double* acc_y, double* acc_z) {
+int ITG3200_get_samplerate() {
+  int internal_freq = ITG3200_filter_bandwidth == ITG3200_FILTER_BANDWIDTH_256 ? 8000 : 1000; // page 24
+  return internal_freq / (ITG3200_divider + 1); // page 23
+}
+
+int ITG3200_read_temp(double* temp) {
+  int rc = select_device();
+  if (rc) return rc;
+
+  char buf[2];
+  buf[0] = ITG3200_TEMP_OUT_H;
+
+  rc = write_device(buf, 1);
+  if (1 != rc) return -1;
+
+  rc = read_device(buf, 2);
+  if (2 != rc) return -2;
+  
+  /* based on ITG3200 driver from Atmel */
+  *temp = ((buf[1] << 8) | buf[0]) - TEMP_OFFSET;
+  *temp /= TEMP_COUNTS_PER_DEG_C;
+  *temp += TEMP_REF_DEG;
+}
+
+int ITG3200_read_angular_vel(double* avel_x, double* avel_y, double* avel_z) {
   int rc = select_device();
   if (rc) return rc;
 
   char buf[6];
-  buf[0] = DATAX0;
+  buf[0] = ITG3200_GYRO_XOUT_H;
 
-  rc = write_device(buf, 2); // Not 1?
-  if (2 != rc) return -1;
+  rc = write_device(buf, 1);
+  if (1 != rc) return -1;
 
-  //in highres mode the output is 0.004g per digit
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
 
-  double k = 0.004;
-  *acc_x = k * ((buf[1] << 8) | buf[0]);
-  *acc_y = k * ((buf[3] << 8) | buf[2]);
-  *acc_z = k * ((buf[5] << 8) | buf[4]);
+  *avel_x = (double)((buf[1] << 8) | buf[0]) / SCALE_LSB_PER_DPS;
+  *avel_y = (double)((buf[3] << 8) | buf[2]) / SCALE_LSB_PER_DPS;
+  *avel_z = (double)((buf[5] << 8) | buf[4]) / SCALE_LSB_PER_DPS;
 }
