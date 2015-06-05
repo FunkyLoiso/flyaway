@@ -1,11 +1,16 @@
 #ifndef HMC5883_REGISTERS_H_INCLUDED
 #define HMC5883_REGISTERS_H_INCLUDED
 
+#include <stdint.h>
+
 /* TWI/I2C slave address (write @ 0x3c on bus, read @ 0x3d on bus) */
 #define HMC5883_TWI_ADDR       (0x1e)
 
 /* Signed axis data sample resolution (bits) */
 #define HMC5883_DATA_RESOLUTION (12)
+
+/* Value signalizing data overflow */
+#define DATA_OUTPUT_OVERFLOW    ((int16_t)0xf000)
 
 /** \brief Data scaling - varies by range/gain setting */
 /** @{ */

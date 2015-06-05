@@ -1,6 +1,8 @@
 #ifndef HMC5883_H_INCLUDED
 #define HMC5883_H_INCLUDED
 
+const int HMC5883_OVERFLOW = -1000; // returned by HMC5883_read in case of axis overflow
+
 typedef enum {
   HMC5883_DATA_RATE_0_75HZ = (0x00),
   HMC5883_DATA_RATE_1_5HZ = (0x04),
@@ -24,5 +26,6 @@ HMC5883_GAIN_7_9GA = (0xe0)
 
 int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN gain);
 int HMC5883_read(double* mag_x, double* mag_y, double* mag_z);
+/* @TODO: add callibrarion routine and a setter fro callibration values */
 
 #endif
