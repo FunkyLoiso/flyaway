@@ -1,4 +1,6 @@
 #include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <wiringPiI2C.h>
 
 #include "ITG3200.h"
@@ -11,15 +13,15 @@ ITG3200_FILTER_BANDWIDTH ITG3200_filter_bandwidth = -1;
 ITG3200_SAMPLERATE_DIVIDER ITG3200_divider = -1;
 
 /* private */
-int select_device() {
+static int select_device() {
   return ioctl(ITG3200_fd, I2C_SLAVE, ITG3200_adr);
 }
 
-int write_device(char* buf, int len) {
+static int write_device(char* buf, int len) {
   return write(ITG3200_fd, buf, len);
 }
 
-int read_device(char* buf, int len) {
+static int read_device(char* buf, int len) {
   return read(ITG3200_fd, buf, len);
 }
 
@@ -49,7 +51,7 @@ int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_
   rc = read_device(buf, 1);
   if (1 != rc) return -4;
 
-  if (buf[0] & 0x7E != ITG3200_ID_VAL) {
+  if ((buf[0] & 0x7E) != ITG3200_ID_VAL) {
     LOG_DEBUG("ITG3200 'who am I' is 0x%x, expected 0x%x", buf[0], ITG3200_ID_VAL);
     return -5;
   }
@@ -98,6 +100,8 @@ int ITG3200_read_temp(double* temp) {
   *temp = ((buf[1] << 8) | buf[0]) - TEMP_OFFSET;
   *temp /= TEMP_COUNTS_PER_DEG_C;
   *temp += TEMP_REF_DEG;
+
+  return 0;
 }
 
 int ITG3200_read_angular_vel(double* avel_x, double* avel_y, double* avel_z) {
@@ -116,4 +120,6 @@ int ITG3200_read_angular_vel(double* avel_x, double* avel_y, double* avel_z) {
   *avel_x = (double)((buf[1] << 8) | buf[0]) / SCALE_LSB_PER_DPS;
   *avel_y = (double)((buf[3] << 8) | buf[2]) / SCALE_LSB_PER_DPS;
   *avel_z = (double)((buf[5] << 8) | buf[4]) / SCALE_LSB_PER_DPS;
+
+  return 0;
 }

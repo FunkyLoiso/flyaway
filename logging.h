@@ -7,7 +7,7 @@
 #ifdef _DEBUG
   #define LOG_DEBUG(...) (frpintf(stdout, __VA_ARGS__))
 #else
-  #define LOG_DEBUG
+  #define LOG_DEBUG(...)
 #endif
 
 #endif

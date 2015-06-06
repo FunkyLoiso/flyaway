@@ -1,4 +1,8 @@
 #include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <string.h> // for memcpy
+
 #include <wiringPiI2C.h>
 #include <wiringPi.h> // for delay
 
@@ -13,16 +17,16 @@ HMC5883_GAIN HMC5883_gain = -1;
 HMC5883_CALIBRATION_DATA HMC5883_calibration_data = { .offset = {0}, .sensitivity = {1.0, 1.0, 1.0} };
 
 /* private */
-int select_device() {
+static int select_device() {
   //maybe we need to do HMC5883_adr << 1 for write and (HMC5883_adr << 1) | 1 for read?
   return ioctl(HMC5883_fd, I2C_SLAVE, HMC5883_adr);
 }
 
-int write_device(char* buf, int len) {
+static int write_device(char* buf, int len) {
   return write(HMC5883_fd, buf, len);
 }
 
-int read_device(char* buf, int len) {
+static int read_device(char* buf, int len) {
   return read(HMC5883_fd, buf, len);
 }
 
@@ -55,9 +59,9 @@ int read_mag_raw(vector_int_3d* raw_data) {
   raw_data->z = (buf[3] << 8) | buf[2];
   raw_data->y = (buf[5] << 8) | buf[4];
 
-  if (raw_data->x == DATA_OUTPUT_OVERFLOW |
-    raw_data->y == DATA_OUTPUT_OVERFLOW |
-    raw_data->z == DATA_OUTPUT_OVERFLOW) {
+  if ((raw_data->x == DATA_OUTPUT_OVERFLOW) |
+      (raw_data->y == DATA_OUTPUT_OVERFLOW) |
+      (raw_data->z == DATA_OUTPUT_OVERFLOW)) {
     return HMC5883_OVERFLOW;
   }
 
@@ -152,7 +156,7 @@ exit:
     return -60;
   }
 
-  return 0;
+  return return_code;
 }
 
 void apply_sensitivity(vector_int_3d* raw_data) {
@@ -183,16 +187,16 @@ int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN ga
   char buf[3];
 
   //check id
-  buf[0] << HMC5883_ID_REG_A;
+  buf[0] = HMC5883_ID_REG_A;
   int rc = write_device(buf, 1);
   if (1 != rc) return -1;
 
   rc = read_device(buf, 3);
   if(3 != rc) return -2;
 
-  if (buf[0] != ID_A_DEFAULT |
-    buf[1] != ID_B_DEFAULT |
-    buf[2] != ID_C_DEFAULT) {
+  if ((buf[0] != ID_A_DEFAULT) |
+      (buf[1] != ID_B_DEFAULT) |
+      (buf[2] != ID_C_DEFAULT)) {
     LOG_ERROR("HMC5883 id check failed. Expected 0x%x%x%x, got 0x%x%x%x", ID_A_DEFAULT, ID_B_DEFAULT, ID_C_DEFAULT, buf[0], buf[1], buf[2]);
     return -3;
   }
@@ -236,6 +240,8 @@ int HMC5883_read(vector_double_3d* mag) {
   mag->x = ((double)raw_data.x) / counts_per_Gauss;
   mag->y = ((double)raw_data.y) / counts_per_Gauss;
   mag->z = ((double)raw_data.z) / counts_per_Gauss;
+
+  return 0;
 }
 
 int HMC5883_callibrate(int step) {

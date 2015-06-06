@@ -101,14 +101,14 @@
 /* Self-test Definitions */
 
 #define HMC5883_TEST_GAIN      GAIN_2_5GA  /* gain value during self-test */
-/* #define HMC5883L_TEST_X_MIN     550         /* min X */
+/* #define HMC5883L_TEST_X_MIN     550          min X */
 #define HMC5883_TEST_X_NORM    393         /* normal X, 0.64 gauss */
-/* #define HMC5883L_TEST_X_MAX     850         /* max X */
-/* #define HMC5883L_TEST_Y_MIN     550         /* min Y */
+/* #define HMC5883L_TEST_X_MAX     850          max X */
+/* #define HMC5883L_TEST_Y_MIN     550          min Y */
 #define HMC5883_TEST_Y_NORM    393         /* normal Y 0.64 gauss */
-/* #define HMC5883L_TEST_Y_MAX     850         /* max Y */
-/* #define HMC5883L_TEST_Z_MIN     550         /* min Z */
+/* #define HMC5883L_TEST_Y_MAX     850          max Y */
+/* #define HMC5883L_TEST_Z_MIN     550          min Z */
 #define HMC5883_TEST_Z_NORM    362         /* normal Z 0.59 gauss */
-/* #define HMC5883L_TEST_Z_MAX     850         /* max Z */
+/* #define HMC5883L_TEST_Z_MAX     850          max Z */
 
 #endif

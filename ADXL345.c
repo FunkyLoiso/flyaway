@@ -3,6 +3,8 @@ based on http://www.raspberrypi.org/forums/viewtopic.php?t=55834
 */
 
 #include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <wiringPiI2C.h>
 
 #include "ADXL345.h"
@@ -93,4 +95,6 @@ int ADXL345_read(double* acc_x, double* acc_y, double* acc_z) {
   *acc_x = k * ((buf[1] << 8) | buf[0]);
   *acc_y = k * ((buf[3] << 8) | buf[2]);
   *acc_z = k * ((buf[5] << 8) | buf[4]);
+
+  return 0;
 }
