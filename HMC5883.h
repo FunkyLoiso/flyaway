@@ -28,14 +28,14 @@ HMC5883_GAIN_7_9GA = (0xe0)
 
 typedef struct {
   vector_int_3d offset;
-  vector_int_3d sensitivity;
-} HMC5883_CALLIBRATION_DATA;
+  vector_double_3d sensitivity;
+} HMC5883_CALIBRATION_DATA;
 
 int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN gain);
 int HMC5883_read(vector_double_3d* mag);
-/* @TODO: add callibrarion routine and a setter fro callibration values */
-int HMC5883_callibare();
-void HMC5883_get_callibration_data(HMC5883_CALLIBRATION_DATA* data);
-void HMC5883_set_callibration_data(HMC5883_CALLIBRATION_DATA* data);
+
+int HMC5883_calibrate();
+void HMC5883_get_calibration_data(HMC5883_CALIBRATION_DATA* data);
+void HMC5883_set_calibration_data(HMC5883_CALIBRATION_DATA* data);
 
 #endif

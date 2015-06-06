@@ -46,7 +46,7 @@ int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_
   int rc = write_device(buf, 1);
   if (1 != rc) return -3;
 
-  int rc = read_device(buf, 1);
+  rc = read_device(buf, 1);
   if (1 != rc) return -4;
 
   if (buf[0] & 0x7E != ITG3200_ID_VAL) {
@@ -57,19 +57,19 @@ int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_
   //sample rate divider
   buf[0] = ITG3200_SMPLRT_DIV;
   buf[1] = divider;
-  int rc = write_device(buf, 2);
+  rc = write_device(buf, 2);
   if (2 != rc) return -6;
 
   //scale and filter bandwidth
   buf[0] = ITG3200_DLPF_FS;
   buf[1] = FS_SEL_2000 | bandwidth; //FULL_SCALE in bits 3-4
-  int rc = write_device(buf, 2);
+  rc = write_device(buf, 2);
   if (2 != rc) return -7;
 
   //set X Gyro oscilator as the clock reference. Recomended by the sheet
   buf[0] = ITG3200_PWR_MGM;
   buf[1] = PWR_MGM_CLK_SEL_X;
-  int rc = write_device(buf, 2);
+  rc = write_device(buf, 2);
   if (2 != rc) return -8;
 
   LOG_DEBUG("ITG3200 on adr 0x%x init OK\n", adr);
