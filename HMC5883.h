@@ -1,6 +1,8 @@
 #ifndef HMC5883_H_INCLUDED
 #define HMC5883_H_INCLUDED
 
+#include "vector.h"
+
 const int HMC5883_OVERFLOW = -1000; // returned by HMC5883_read in case of axis overflow
 
 typedef enum {
@@ -24,8 +26,16 @@ HMC5883_GAIN_5_5GA = (0xc0),
 HMC5883_GAIN_7_9GA = (0xe0)
 } HMC5883_GAIN;
 
+typedef struct {
+  vector_int_3d offset;
+  vector_int_3d sensitivity;
+} HMC5883_CALLIBRATION_DATA;
+
 int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN gain);
-int HMC5883_read(double* mag_x, double* mag_y, double* mag_z);
+int HMC5883_read(vector_double_3d* mag);
 /* @TODO: add callibrarion routine and a setter fro callibration values */
+int HMC5883_callibare();
+void HMC5883_get_callibration_data(HMC5883_CALLIBRATION_DATA* data);
+void HMC5883_set_callibration_data(HMC5883_CALLIBRATION_DATA* data);
 
 #endif

@@ -1,5 +1,6 @@
 #include <linux/i2c-dev.h>
 #include <wiringPiI2C.h>
+#include <wiringPi.h> // for delay
 
 #include "HMC5883.h"
 #include "HMC5883_registers.h"
@@ -9,6 +10,7 @@ int HMC5883_fd = -1;
 unsigned char HMC5883_adr = 0x00;
 HMC5883_DATA_RATE HMC5883_data_rate = -1;
 HMC5883_GAIN HMC5883_gain = -1;
+HMC5883_CALLIBRATION_DATA HMC5883_callibration_data = {0};
 
 /* private */
 int select_device() {
@@ -38,8 +40,130 @@ int gain_to_scale(HMC5883_GAIN gain) {
   }
 }
 
-/* public */
+int read_mag_raw(vector_int_3d* raw_data) {
+  char buf[6];
+  buf[0] = HMC5883_MAG_X_HI;
 
+  int rc = write_device(buf, 1);
+  if (1 != rc) return -1;
+
+  rc = read_device(buf, 6);
+  if (6 != rc) return -2;
+
+  // sensor regizer order is X Z Y
+  raw_data->x = (buf[1] << 8) | buf[0];
+  raw_data->z = (buf[3] << 8) | buf[2];
+  raw_data->y = (buf[5] << 8) | buf[4];
+
+  if (raw_data->x == DATA_OUTPUT_OVERFLOW |
+    raw_data->y == DATA_OUTPUT_OVERFLOW |
+    raw_data->z == DATA_OUTPUT_OVERFLOW) {
+    return HMC5883_OVERFLOW;
+  }
+
+  return 0;
+}
+
+int selftest(vector_int_3d *data)
+{
+  static const int SELF_TEST_DELAY_MS = 250;
+  //int count;
+  //uint8_t meas_mode;          /* test measurement mode */
+  //vector_int_3d data;
+  //int status = 0;
+  int return_code = 0;
+
+  struct {
+    uint8_t config_reg_a;
+    uint8_t config_reg_b;
+    uint8_t mode_reg;
+  }
+  reg_set;
+
+  int rc = select_device();
+  if (rc) return rc;
+
+  char buf[2];
+
+  /* Save register values */
+  buf[0] = HMC5883_CONFIG_REG_A;
+  rc = write_device(buf, 1);
+  if (1 != rc) return -10;
+  rc = read_device((char *)&reg_set, sizeof(reg_set));
+  if (sizeof(reg_set) != rc) return -11;
+
+  /* Set range (sensitivity) */
+  buf[0] = HMC5883_CONFIG_REG_B;
+  buf[1] = HMC5883_TEST_GAIN;
+  rc = write_device(buf, 2);
+  if (2 != rc) {
+    return_code = -20;
+    goto exit;
+  }
+
+  /* Set test mode */
+  buf[0] = HMC5883_CONFIG_REG_A;
+  buf[1] = DATA_RATE_15HZ | MEAS_MODE_POS;
+  rc = write_device(buf, 2);
+  if (2 != rc) {
+    return_code = -30;
+    goto exit;
+  }
+
+  delay(SELF_TEST_DELAY_MS);
+
+  /* Perform test measurement & check results */
+  buf[0] = HMC5883_MODE_REG;
+  buf[1] = MODE_SINGLE; /* put into single-measurement mode to start self-test */
+  rc = write_device(buf, 2);
+  if (2 != rc) {
+    return_code = -40;
+    goto exit;
+  }
+
+  delay(SELF_TEST_DELAY_MS);
+
+  vector_int_3d raw_data;
+  int rc = read_mag_raw(&raw_data);
+  if (rc) {
+    return_code = rc;
+    goto exit;
+  }
+
+  if (arg != NULL) {
+    ((sensor_data_t *)arg)->scaled = false; /* only raw values */
+    ((sensor_data_t *)arg)->timestamp = 0;  /* no timestamp */
+
+    ((sensor_data_t *)arg)->axis.x = (int32_t)data.x; /* copy values */
+    ((sensor_data_t *)arg)->axis.y = (int32_t)data.y;
+    ((sensor_data_t *)arg)->axis.z = (int32_t)data.z;
+  }
+
+  /* Check range of readings */
+  if ((HMC5883L_TEST_X_MIN > data.x) ||
+    (data.x > HMC5883L_TEST_X_MAX) ||
+    (HMC5883L_TEST_Y_MIN > data.y) ||
+    (data.y > HMC5883L_TEST_Y_MAX) ||
+    (HMC5883L_TEST_Z_MIN > data.z) ||
+    (data.z > HMC5883L_TEST_Z_MAX)) {
+    *test_code = SENSOR_TEST_ERR_RANGE;
+    status = false; /* value out of range */
+  }
+
+exit:
+  /* Restore registers */
+  count = sensor_bus_write(hal, HMC5883L_CONFIG_REG_A,
+    (uint8_t *)&reg_set, sizeof(reg_set));
+
+  if (count != sizeof(reg_set)) {
+    *test_code = SENSOR_TEST_ERR_WRITE;
+    status = false;
+  }
+
+  return status;
+}
+
+/* public */
 int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN gain) {
   int fd = wiringPiI2CSetup(adr);
   if (fd < 0)  {
@@ -93,34 +217,120 @@ int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN ga
   return 0;
 }
 
-int HMC5883_read(double* mag_x, double* mag_y, double* mag_z) {
+int HMC5883_read(vector_double_3d* mag) {
   int rc = select_device();
   if (rc) return rc;
 
-  char buf[6];
-  buf[0] = HMC5883_MAG_X_HI;
-
-  rc = write_device(buf, 1);
-  if (1 != rc) return -1;
-
-  rc = read_device(buf, 6);
-  if (6 != rc) return -2;
-
-  // sensor regizer order is X Z Y
-  double data_x = (buf[1] << 8) | buf[0];
-  double data_z = (buf[3] << 8) | buf[2];
-  double data_y = (buf[5] << 8) | buf[4];
-
-  if (data_x == DATA_OUTPUT_OVERFLOW |
-    data_y == DATA_OUTPUT_OVERFLOW |
-    data_z == DATA_OUTPUT_OVERFLOW) {
-    return HMC5883_OVERFLOW;
-  }
+  vector_int_3d raw_data;
+  rc = read_mag_raw(&raw_data);
+  if (rc) return rc;
 
   double counts_per_Gauss = gain_to_scale(HMC5883_gain);
-  *mag_x = data_x / counts_per_Gauss;
-  *mag_y = data_y / counts_per_Gauss;
-  *mag_z = data_z / counts_per_Gauss;
+  mag->x = ((double)raw_data.x) / counts_per_Gauss;
+  mag->y = ((double)raw_data.y) / counts_per_Gauss;
+  mag->z = ((double)raw_data.z) / counts_per_Gauss;
+}
+
+int HMC5883_callibare(int step) {
+  static vector_int_3d step_data[3];  /* sensor readings during calibration */
+  vector_int_3d dummy_data;           /* data from first sensor read (ignored) */
+  vector_int_3d read_back;            /* data read back from nvram to validate */
+  sensor_data_t test_data;            /* readings during self test */
+  int test_code;                      /* self-test code & result */
+
+  /* Validate the supported calibration types and step number. */
+  if ((step < 1) || (step > 3)) {
+    return -1;
+  }
+
+  /* During first pass, use self-test to determine sensitivity scaling */
+  if (step == 1) {
+    /* Run internal self test with known bias field */
+    test_code = SENSOR_TEST_BIAS_POS;
+
+    if ((hmc5883l_selftest(sensor, &test_code,
+      &test_data) == false) ||
+      (test_code != SENSOR_TEST_ERR_NONE)) {
+      return false;
+    }
+
+    /* Calculate & store sensitivity adjustment values */
+    cal_data.sensitivity.x
+      = ((scalar_t)HMC5883L_TEST_X_NORM / test_data.axis.x);
+    cal_data.sensitivity.z
+      = ((scalar_t)HMC5883L_TEST_Z_NORM / test_data.axis.z);
+    cal_data.sensitivity.y
+      = ((scalar_t)HMC5883L_TEST_Y_NORM / test_data.axis.y);
+
+    nvram_write(CAL_SENSITIVITY_ADDR, &cal_data.sensitivity,
+      sizeof(cal_data.sensitivity));
+
+    /* Read back data and confirm it was written correctly */
+    nvram_read(CAL_SENSITIVITY_ADDR, &read_back, sizeof(vector3_t));
+
+    if (memcmp(&cal_data.sensitivity, &read_back,
+      sizeof(vector3_t))) {
+      sensor->err = SENSOR_ERR_IO;
+      return false;
+    }
+  }
+
+  /* Read sensor data and test for data overflow.
+  *   Note: Sensor must be read twice - the first reading may
+  *         contain stale data from previous orientation.
+  */
+  if (hmc5883l_get_data(hal, &dummy_data) != true) {
+    return false;
+  }
+
+  delay_ms(READ_DELAY_MSEC);
+
+  if (hmc5883l_get_data(hal, &(step_data[step - 1])) != true) {
+    return false;
+  }
+
+  /* Apply sensitivity scaling factors */
+  hmc5883l_apply_sensitivity(&(step_data[step - 1]));
+
+  switch (step) {
+    /* There's nothing more to do on the first two passes. */
+  case 1:
+  case 2:
+    break;
+
+    /* Calculate & store the offsets on the final pass. */
+  case 3:
+    cal_data.offsets.x = (step_data[0].x + step_data[1].x) / 2;
+    cal_data.offsets.y = (step_data[0].y + step_data[1].y) / 2;
+    cal_data.offsets.z = (step_data[1].z + step_data[2].z) / 2;
+
+    nvram_write(CAL_OFFSETS_ADDR, &cal_data.offsets,
+      sizeof(cal_data.offsets));
+
+    /* Read back data and confirm it was written correctly */
+    nvram_read(0, &read_back, sizeof(vector3_t));
+
+    if (memcmp(&cal_data.offsets, &read_back, sizeof(vector3_t))) {
+      sensor->err = SENSOR_ERR_IO;
+      return false;
+    }
+
+    break;
+
+  default:
+    return false;   /* bad step value */
+  }
+
+  return true;
+
+}
+
+void HMC5883_get_callibration_data(HMC5883_CALLIBRATION_DATA* data) {
+  memcpy(data, &HMC5883_callibration_data, sizeof(HMC5883_CALLIBRATION_DATA));
+}
+
+void HMC5883_set_callibration_data(HMC5883_CALLIBRATION_DATA* data) {
+  memcpy(&HMC5883_callibration_data, data, sizeof(HMC5883_CALLIBRATION_DATA));
 }
 
 #if 0
