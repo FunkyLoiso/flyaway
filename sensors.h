@@ -10,6 +10,6 @@
 
 #include "ADXL345.h"
 #include "ITG3200.h"
-
+#include "HMC5883.h"
 
 #endif
