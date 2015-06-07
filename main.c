@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "input.h"
 #include "sensors.h"
 
@@ -8,14 +10,20 @@
  */
 
 void setup(void) {
+  int rc = init_sensors();
+  if(rc) {
+    exit(rc);
+  }
 }
 
 input_commands_t input_cmd;
+SENSOR_DATA sensor_data;
 
 void loop(void) {
   /* 1. Read operator commands. */
   read_test_inputs(&input_cmd);
   /* 2. Read sensors. */
+  int rc = read_sensors(&sensor_data);
   /* 3. Calculate sensor fusion data */
   /* 4. Calculate sensor-based data */
   /* 5. Perform linear velocities regulation */

@@ -5,6 +5,7 @@
 TEMPLATE = app
 CONFIG += console
 CONFIG -= qt
+LIBS += -lwiringPi
 HEADERS += ./ADXL345.h \
     ./ADXL345_registers.h \
     ./HMC5883.h \

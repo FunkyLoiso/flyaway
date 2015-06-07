@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <string.h>
+#include <wiringPi.h>
 
 #include "sensors.h"
 #include "logging.h"
@@ -32,8 +33,13 @@ static int calibrate_HMC5883() {
     return rc;
   }
   printf("OK\n HMC5883 calibration successfully compleated. Thank you for your patience.\n");
+
+  return 0;
 }
 
+double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure) {
+  return 44330 * (1.0 - pow(pressure /sealevel_pressure,0.1903));
+}
 
 int init_sensors()
 {
@@ -64,10 +70,47 @@ int init_sensors()
 
   /* @TODO: save callibration data to file and load it later instead of calibrating every time */
 #endif
+
+  rc = BMP085_init(0x77, BMP085_2_INT_SAMPLES); /* 1,5 + 2*3 = 7,5 ms interval => 133 Hz update */
+  if(rc) {
+    LOG_ERROR("Error during BMP085 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    return rc;
+  }
+
+  rc = BMP085_schedule_press_temp_update();
+  if(rc) {
+    LOG_ERROR("Error during HMC5883 pressure&temp update scheduling. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    return rc;
+  }
+
+  return 0;
 }
 
 
 int read_sensors(SENSOR_DATA *data)
 {
+  /* @TODO: do result code checking */
+  int rc = ADXL345_read(&data->acc_data);
+  rc = ITG3200_read_temp(&data->itg3200_temp);
+  rc = ITG3200_read_angular_vel(&data->avel_data);
+  rc = HMC5883_read(&data->mag_data);
 
+  int is_value_new;
+  int pressure;
+  BMP085_read_temp(&data->bmp085_temp, &is_value_new);
+  BMP085_read_press(&pressure, &is_value_new);
+  data->altitude = pressure_to_altitude(std_sealevel_pressure, pressure);
+
+  /* schedule a BMP085 update */
+  static const unsigned int BMP085_temp_update_interval_ms = 1000;
+  static unsigned int BMP085_last_temp_update = 0;
+  if( (millis() - BMP085_last_temp_update) < BMP085_temp_update_interval_ms ) {
+    /* too early for temp update */
+    rc = BMP085_schedule_press_update();
+  }
+  else {
+    rc = BMP085_schedule_press_temp_update(); /* this blocks for 4.5 ms */
+  }
+
+  return 0;
 }

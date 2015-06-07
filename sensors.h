@@ -28,10 +28,7 @@ typedef struct {
   double altitude;            /* BMP085 altitude, m */
 } SENSOR_DATA;
 
-double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure){
- return 44330 * (1.0 - pow(pressure /sealevel_pressure,0.1903));
-}
-
+double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure);
 int init_sensors();
 int read_sensors(SENSOR_DATA* data);
 

@@ -14,7 +14,7 @@ int HMC5883_fd = -1;
 unsigned char HMC5883_adr = 0x00;
 HMC5883_DATA_RATE HMC5883_data_rate = -1;
 HMC5883_GAIN HMC5883_gain = -1;
-HMC5883_CALIBRATION_DATA HMC5883_calibration_data = { .offset = {0}, .sensitivity = {1.0, 1.0, 1.0} };
+HMC5883_CALIBRATION_DATA HMC5883_calibration_data = { .offset = {0, 0, 0}, .sensitivity = {1.0, 1.0, 1.0} };
 
 /* private */
 static int select_device() {
@@ -244,7 +244,7 @@ int HMC5883_read(vector_double_3d* mag) {
   return 0;
 }
 
-int HMC5883_callibrate(int step) {
+int HMC5883_calibrate(int step) {
   static vector_int_3d step_data[3];  /* sensor readings during calibration */
   vector_int_3d dummy_data;           /* data from first sensor read (ignored) */
   vector_int_3d test_data;            /* readings during self test */
