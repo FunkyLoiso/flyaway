@@ -24,3 +24,7 @@ SOURCES += ./ADXL345.c \
     ./main.c \
     ./BMP085.c \
     sensors.c
+
+CONFIG(debug, debug|release) {
+  DEFINES += _DEBUG
+}

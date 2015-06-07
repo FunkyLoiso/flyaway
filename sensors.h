@@ -24,7 +24,7 @@ typedef struct {
   vector_double_3d avel_data; /* ITG3200 angular velocicites, deg/s */
   double itg3200_temp;        /* ITG3200 temperature, deg c */
   vector_double_3d mag_data;  /* HMC5883 magnetic inductions, gauss  */
-  int32_t bmp085_temp;        /* BMP085 temperature, deg c */
+  double bmp085_temp;         /* BMP085 temperature, deg c */
   double altitude;            /* BMP085 altitude, m */
 } SENSOR_DATA;
 

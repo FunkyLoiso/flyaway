@@ -97,7 +97,7 @@ int ITG3200_read_temp(double* temp) {
   if (2 != rc) return -2;
   
   /* based on ITG3200 driver from Atmel */
-  *temp = ((buf[1] << 8) | buf[0]) - TEMP_OFFSET;
+  *temp = ((buf[0] << 8) | buf[1]) + TEMP_OFFSET;
   *temp /= TEMP_COUNTS_PER_DEG_C;
   *temp += TEMP_REF_DEG;
 
@@ -117,9 +117,9 @@ int ITG3200_read_angular_vel(vector_double_3d *avels) {
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
 
-  avels->x = (double)((buf[1] << 8) | buf[0]) / SCALE_LSB_PER_DPS;
-  avels->y = (double)((buf[3] << 8) | buf[2]) / SCALE_LSB_PER_DPS;
-  avels->z = (double)((buf[5] << 8) | buf[4]) / SCALE_LSB_PER_DPS;
+  avels->x = (double)((buf[0] << 8) | buf[1]) / SCALE_LSB_PER_DPS;
+  avels->y = (double)((buf[2] << 8) | buf[3]) / SCALE_LSB_PER_DPS;
+  avels->z = (double)((buf[4] << 8) | buf[5]) / SCALE_LSB_PER_DPS;
 
   return 0;
 }

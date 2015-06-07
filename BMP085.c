@@ -74,12 +74,11 @@ int BMP085_init(unsigned char adr, BMP085_OVERSAMPLING_SETTING oss) {
   int rc = write_device(buf, 1);
   if (1 != rc) return -11;
 
-  rc = read_device(buf, 2);
-  if(2 != rc) return -20;
+  rc = read_device(buf, 1);
+  if(1 != rc) return -20;
 
-  if ((buf[0] != BMP085_ID_VAL) |
-      (buf[1] != BMP085_VER_VAL)) {
-    LOG_ERROR("BMP085 id check failed. Expected 0x%x%x, got 0x%x%x", BMP085_ID_VAL, BMP085_VER_VAL, buf[0], buf[1]);
+  if (buf[0] != BMP085_ID_VAL) {
+    LOG_ERROR("BMP085 id check failed. Expected 0x%x, got 0x%x", BMP085_ID_VAL, buf[0]);
     return -30;
   }
 
@@ -148,12 +147,12 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   return 0;
 }
 
-void BMP085_read_temp(int32_t* temperature, int* is_new_value) {
+void BMP085_read_temp(double* temperature, int* is_new_value) {
   if (new_temperature_flag) {
     int32_t const x1 = ((uncompensated_temperature - cal.ac6) * cal.ac5) >> 15;
     int32_t const x2 = ((int32_t)cal.mc << 11) / (x1 + cal.md);
 
-    real_temperature = ((x1 + x2) + 8) >> 4;
+    real_temperature = (double)( ((x1 + x2) + 8) >> 4 ) / 10.0; /* temperature output is in 0.1 of deg c */
 
     new_temperature_flag = 0;
     *is_new_value = 1;

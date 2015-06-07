@@ -6,6 +6,7 @@ based on http://www.raspberrypi.org/forums/viewtopic.php?t=55834
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <wiringPiI2C.h>
+#include <stdint.h>
 
 #include "ADXL345.h"
 #include "ADXL345_registers.h"
@@ -77,6 +78,15 @@ int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode) {
   return 0;
 }
 
+static int16_t from_bytes(unsigned char lo, unsigned char hi) {
+  int16_t out = lo | (hi << 8);
+  if (out & 0x8000) {
+    out = ((out ^ 0xffff) + 1) & 0xfff; /* undo two's complement */
+    out = -out;                         /* make native negative */
+  }
+  return out;
+}
+
 int ADXL345_read(vector_double_3d* accs) {
   int rc = select_device();
   if (rc) return rc;
@@ -88,13 +98,18 @@ int ADXL345_read(vector_double_3d* accs) {
   if (1 != rc) return -1;
 
   //in highres mode the output is 0.004g per digit
-  rc = read_device(buf, 6);
+  rc = read_device((char *)buf, 6);
   if (6 != rc) return -2;
 
   double k = 0.004; // others say(90.0 / 256.0)
-  accs->x = k * ((buf[1] << 8) | buf[0]);
-  accs->y = k * ((buf[3] << 8) | buf[2]);
-  accs->z = k * ((buf[5] << 8) | buf[4]);
+//  accs->x = k * ((buf[1] << 8) | buf[0]);
+//  accs->y = k * ((buf[3] << 8) | buf[2]);
+//  accs->z = k * ((buf[5] << 8) | buf[4]);
+
+  /* @TODO: Still wrong? */
+  accs->x = k * from_bytes(buf[0], buf[1]);
+  accs->y = k * from_bytes(buf[2], buf[3]);
+  accs->z = k * from_bytes(buf[4], buf[5]);
 
   return 0;
 }
