@@ -14,8 +14,11 @@ HEADERS += ./ADXL345.h \
     ./logging.h \
     ./input.h \
     ./sensors.h \
-    ./vector.h
+    ./vector.h \
+    ./BMP085.h \
+    ./BMP085_registers.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
-    ./main.c
+    ./main.c \
+    ./BMP085.c
