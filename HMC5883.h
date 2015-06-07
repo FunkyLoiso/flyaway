@@ -3,7 +3,7 @@
 
 #include "vector.h"
 
-const int HMC5883_OVERFLOW = -1000; // returned by HMC5883_read in case of axis overflow
+static const int HMC5883_OVERFLOW = -1000; // returned by HMC5883_read in case of axis overflow
 
 typedef enum {
   HMC5883_DATA_RATE_0_75HZ = (0x00),
@@ -34,7 +34,7 @@ typedef struct {
 int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN gain);
 int HMC5883_read(vector_double_3d* mag);
 
-int HMC5883_calibrate();
+int HMC5883_calibrate(int step);
 void HMC5883_get_calibration_data(HMC5883_CALIBRATION_DATA* data);
 void HMC5883_set_calibration_data(HMC5883_CALIBRATION_DATA* data);
 

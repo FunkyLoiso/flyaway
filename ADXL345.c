@@ -77,7 +77,7 @@ int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode) {
   return 0;
 }
 
-int ADXL345_read(double* acc_x, double* acc_y, double* acc_z) {
+int ADXL345_read(vector_double_3d* accs) {
   int rc = select_device();
   if (rc) return rc;
 
@@ -92,9 +92,9 @@ int ADXL345_read(double* acc_x, double* acc_y, double* acc_z) {
   if (6 != rc) return -2;
 
   double k = 0.004; // others say(90.0 / 256.0)
-  *acc_x = k * ((buf[1] << 8) | buf[0]);
-  *acc_y = k * ((buf[3] << 8) | buf[2]);
-  *acc_z = k * ((buf[5] << 8) | buf[4]);
+  accs->x = k * ((buf[1] << 8) | buf[0]);
+  accs->y = k * ((buf[3] << 8) | buf[2]);
+  accs->z = k * ((buf[5] << 8) | buf[4]);
 
   return 0;
 }

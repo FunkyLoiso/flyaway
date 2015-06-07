@@ -104,7 +104,7 @@ int ITG3200_read_temp(double* temp) {
   return 0;
 }
 
-int ITG3200_read_angular_vel(double* avel_x, double* avel_y, double* avel_z) {
+int ITG3200_read_angular_vel(vector_double_3d *avels) {
   int rc = select_device();
   if (rc) return rc;
 
@@ -117,9 +117,9 @@ int ITG3200_read_angular_vel(double* avel_x, double* avel_y, double* avel_z) {
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
 
-  *avel_x = (double)((buf[1] << 8) | buf[0]) / SCALE_LSB_PER_DPS;
-  *avel_y = (double)((buf[3] << 8) | buf[2]) / SCALE_LSB_PER_DPS;
-  *avel_z = (double)((buf[5] << 8) | buf[4]) / SCALE_LSB_PER_DPS;
+  avels->x = (double)((buf[1] << 8) | buf[0]) / SCALE_LSB_PER_DPS;
+  avels->y = (double)((buf[3] << 8) | buf[2]) / SCALE_LSB_PER_DPS;
+  avels->z = (double)((buf[5] << 8) | buf[4]) / SCALE_LSB_PER_DPS;
 
   return 0;
 }

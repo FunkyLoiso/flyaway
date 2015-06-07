@@ -1,6 +1,8 @@
 #ifndef ITG3200_H_INCLUDED
 #define ITG3200_H_INCLUDED
 
+#include <vector.h>
+
 typedef enum {
   ITG3200_FILTER_BANDWIDTH_MIN = 0,
   ITG3200_FILTER_BANDWIDTH_256 = 0,
@@ -18,6 +20,6 @@ typedef unsigned char ITG3200_SAMPLERATE_DIVIDER;
 int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_SAMPLERATE_DIVIDER divider);
 int ITG3200_get_samplerate();
 int ITG3200_read_temp(double* temp);
-int ITG3200_read_angular_vel(double* avel_x, double* avel_y, double* avel_z);
+int ITG3200_read_angular_vel(vector_double_3d* avels);
 
 #endif

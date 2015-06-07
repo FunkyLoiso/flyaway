@@ -21,4 +21,5 @@ SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
     ./main.c \
-    ./BMP085.c
+    ./BMP085.c \
+    sensors.c

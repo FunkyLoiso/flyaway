@@ -165,7 +165,7 @@ void BMP085_read_temp(int32_t* temperature, int* is_new_value) {
   *temperature = real_temperature;
 }
 void BMP085_read_press(int32_t* pressure, int* is_new_value) {
-  unsigned int delay = 1500 + 3000 << BMP085_oss; /* max delay is 1.5 + 3*<num_of_samples> ms */
+  unsigned int delay = 1500 + (3000 << BMP085_oss); /* max delay is 1.5 + 3*<num_of_samples> ms */
   if ((micros() - last_pressure_schedule_mcs) >= delay) {
     /* new value ready */
     /* The compensated pressure in pascal (Pa) units. */
