@@ -16,6 +16,6 @@ int BMP085_schedule_press_update();
 int BMP085_schedule_press_temp_update(); /* blocks for 4.5 ms  */
 
 void BMP085_read_temp(double* temperature, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_temp_update call */
-void BMP085_read_press(int32_t* pressure, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_updatek call */
+int BMP085_read_press(int32_t* pressure, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_updatek call */
 
 #endif

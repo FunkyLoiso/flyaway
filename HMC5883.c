@@ -9,6 +9,7 @@
 #include "HMC5883.h"
 #include "HMC5883_registers.h"
 #include "logging.h"
+#include "twos_complement.h"
 
 int HMC5883_fd = -1;
 unsigned char HMC5883_adr = 0x00;
@@ -44,16 +45,6 @@ int gain_to_scale(HMC5883_GAIN gain) {
   }
 }
 
-
-static int16_t from_bytes(unsigned char lo, unsigned char hi) {
-  int16_t out = lo | (hi << 8);
-  if (out & 0x8000) {
-    out = ((out ^ 0xffff) + 1) & 0xfff; /* undo two's complement */
-    out = -out;                         /* make native negative */
-  }
-  return out;
-}
-
 int read_mag_raw(vector_int_3d* raw_data) {
   char buf[6];
   buf[0] = HMC5883_MAG_X_HI;
@@ -64,12 +55,8 @@ int read_mag_raw(vector_int_3d* raw_data) {
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
 
-  // sensor regizer order is X Z Y
-//  raw_data->x = (buf[0] << 8) | buf[1];
-//  raw_data->z = (buf[2] << 8) | buf[3];
-//  raw_data->y = (buf[4] << 8) | buf[5];
-
-  raw_data->x = from_bytes(buf[1], buf[0]);
+  // sensor register order is X Z Y
+  raw_data->x = from_bytes(buf[1], buf[0]); /* MSB then LSB */
   raw_data->z = from_bytes(buf[3], buf[2]);
   raw_data->y = from_bytes(buf[5], buf[4]);
 
@@ -85,10 +72,6 @@ int read_mag_raw(vector_int_3d* raw_data) {
 int selftest(vector_int_3d *out_data)
 {
   static const int SELF_TEST_DELAY_MS = 250;
-  //int count;
-  //uint8_t meas_mode;          /* test measurement mode */
-  //vector_int_3d data;
-  //int status = 0;
   int return_code = 0;
 
   struct {
@@ -211,7 +194,7 @@ int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN ga
   if ((buf[0] != ID_A_DEFAULT) |
       (buf[1] != ID_B_DEFAULT) |
       (buf[2] != ID_C_DEFAULT)) {
-    LOG_ERROR("HMC5883 id check failed. Expected 0x%x%x%x, got 0x%x%x%x", ID_A_DEFAULT, ID_B_DEFAULT, ID_C_DEFAULT, buf[0], buf[1], buf[2]);
+    LOG_ERROR("HMC5883 id check failed. Expected 0x%x 0x%x 0x%x, got 0x%x 0x%x 0x%x", ID_A_DEFAULT, ID_B_DEFAULT, ID_C_DEFAULT, buf[0], buf[1], buf[2]);
     return -3;
   }
 

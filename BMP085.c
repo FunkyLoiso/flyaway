@@ -2,6 +2,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <string.h> // for memcpy
+#include <limits.h> // for UINT_MAX
 
 #include <wiringPiI2C.h>
 #include <wiringPi.h> // for delay
@@ -9,6 +10,7 @@
 #include "BMP085.h"
 #include "BMP085_registers.h"
 #include "logging.h"
+#include "twos_complement.h"
 
 int BMP085_fd = -1;
 unsigned char BMP085_adr = 0x00;
@@ -36,10 +38,10 @@ int new_temperature_flag = 0;
 int32_t uncompensated_pressure = -1;
 int32_t real_pressure = -1;
 unsigned int last_pressure_schedule_mcs = 0;
+int check_pressure_flag = 0;
 
 /* private */
 static int select_device() {
-  //maybe we need to do BMP085_adr << 1 for write and (BMP085_adr << 1) | 1 for read?
   return ioctl(BMP085_fd, I2C_SLAVE, BMP085_adr);
 }
 
@@ -89,19 +91,19 @@ int BMP085_init(unsigned char adr, BMP085_OVERSAMPLING_SETTING oss) {
   rc = read_device(buf, BMP_EEPROM_SIZE_BYTES);
   if (BMP_EEPROM_SIZE_BYTES != rc) return -50;
 
-  cal.ac1 = ((uint16_t)buf[ 0] << 8) | buf[ 1];
-  cal.ac2 = ((uint16_t)buf[ 2] << 8) | buf[ 3];
-  cal.ac3 = ((uint16_t)buf[ 4] << 8) | buf[ 5];
-  cal.ac4 = ((uint16_t)buf[ 6] << 8) | buf[ 7];
-  cal.ac5 = ((uint16_t)buf[ 8] << 8) | buf[ 9];
-  cal.ac6 = ((uint16_t)buf[10] << 8) | buf[11];
+  cal.ac1 = from_bytes(buf[ 1], buf[ 0]); /* MSB then LSB */
+  cal.ac2 = from_bytes(buf[ 3], buf[ 2]);
+  cal.ac3 = from_bytes(buf[ 5], buf[ 4]);
+  cal.ac4 = from_bytes(buf[ 7], buf[ 6]);
+  cal.ac5 = from_bytes(buf[ 9], buf[ 8]);
+  cal.ac6 = from_bytes(buf[11], buf[10]);
 
-  cal.b1  = ((uint16_t)buf[12] << 8) | buf[13];
-  cal.b2  = ((uint16_t)buf[14] << 8) | buf[15];
+  cal.b1  = from_bytes(buf[13], buf[12]);
+  cal.b2  = from_bytes(buf[15], buf[14]);
 
-  cal.mb  = ((uint16_t)buf[16] << 8) | buf[17];
-  cal.mc  = ((uint16_t)buf[18] << 8) | buf[19];
-  cal.md  = ((uint16_t)buf[20] << 8) | buf[21];
+  cal.mb  = from_bytes(buf[17], buf[16]);
+  cal.mc  = from_bytes(buf[19], buf[18]);
+  cal.md  = from_bytes(buf[21], buf[20]);
 
   LOG_DEBUG("BMP085 on adr 0x%x init OK\n", adr);
   return 0;
@@ -117,6 +119,7 @@ int BMP085_schedule_press_update() {
   rc = write_device(buf, 2);
   if (2 != rc) return -10;
   last_pressure_schedule_mcs = micros();
+  check_pressure_flag = 1;
   return 0;
 }
 
@@ -138,7 +141,7 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   rc = read_device(buf, 2);
   if (2 != rc) return -30;
 
-  uncompensated_temperature = ((uint32_t)buf[0] << 8) | buf[1];
+  uncompensated_temperature = from_bytes(buf[1], buf[0]); /* MSB then LSB */
   new_temperature_flag = 1;
 
   /*now schedule pressure update and return*/
@@ -152,7 +155,7 @@ void BMP085_read_temp(double* temperature, int* is_new_value) {
     int32_t const x1 = ((uncompensated_temperature - cal.ac6) * cal.ac5) >> 15;
     int32_t const x2 = ((int32_t)cal.mc << 11) / (x1 + cal.md);
 
-    real_temperature = (double)( ((x1 + x2) + 8) >> 4 ) / 10.0; /* temperature output is in 0.1 of deg c */
+    real_temperature = ((double)( ((x1 + x2) + 8) >> 4 )) / 10.0; /* temperature output is in 0.1 of deg c */
 
     new_temperature_flag = 0;
     *is_new_value = 1;
@@ -163,10 +166,20 @@ void BMP085_read_temp(double* temperature, int* is_new_value) {
 
   *temperature = real_temperature;
 }
-void BMP085_read_press(int32_t* pressure, int* is_new_value) {
+int BMP085_read_press(int32_t* pressure, int* is_new_value) {
   unsigned int delay = 1500 + (3000 << BMP085_oss); /* max delay is 1.5 + 3*<num_of_samples> ms */
-  if ((micros() - last_pressure_schedule_mcs) >= delay) {
+  if ( check_pressure_flag & ((micros() - last_pressure_schedule_mcs) >= delay) ) {
     /* new value ready */
+    char buf[3];
+    buf[0] = BMP_DATA_MSB;
+    rc = write_device(buf, 1);
+    if (1 != rc) return -10;
+    rc = read_device(buf, 3);
+    if (3 != rc) return -20;
+
+    uncompensated_pressure = from_bytes(buf[2], buf[1], buf[0]); /* MSB then LSB then XLSB */
+    check_pressure_flag = 0;
+
     /* The compensated pressure in pascal (Pa) units. */
     int32_t const UT = uncompensated_temperature;
 

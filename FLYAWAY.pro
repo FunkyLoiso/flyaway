@@ -17,7 +17,8 @@ HEADERS += ./ADXL345.h \
     ./sensors.h \
     ./vector.h \
     ./BMP085.h \
-    ./BMP085_registers.h
+    ./BMP085_registers.h \
+    twos_complement.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
