@@ -91,19 +91,19 @@ int BMP085_init(unsigned char adr, BMP085_OVERSAMPLING_SETTING oss) {
   rc = read_device(buf, BMP_EEPROM_SIZE_BYTES);
   if (BMP_EEPROM_SIZE_BYTES != rc) return -50;
 
-  cal.ac1 = from_bytes(buf[ 1], buf[ 0]); /* MSB then LSB */
-  cal.ac2 = from_bytes(buf[ 3], buf[ 2]);
-  cal.ac3 = from_bytes(buf[ 5], buf[ 4]);
-  cal.ac4 = from_bytes(buf[ 7], buf[ 6]);
-  cal.ac5 = from_bytes(buf[ 9], buf[ 8]);
-  cal.ac6 = from_bytes(buf[11], buf[10]);
+  cal.ac1 = from_bytes16(buf[ 1], buf[ 0]); /* MSB then LSB */
+  cal.ac2 = from_bytes16(buf[ 3], buf[ 2]);
+  cal.ac3 = from_bytes16(buf[ 5], buf[ 4]);
+  cal.ac4 = from_bytes16(buf[ 7], buf[ 6]);
+  cal.ac5 = from_bytes16(buf[ 9], buf[ 8]);
+  cal.ac6 = from_bytes16(buf[11], buf[10]);
 
-  cal.b1  = from_bytes(buf[13], buf[12]);
-  cal.b2  = from_bytes(buf[15], buf[14]);
+  cal.b1  = from_bytes16(buf[13], buf[12]);
+  cal.b2  = from_bytes16(buf[15], buf[14]);
 
-  cal.mb  = from_bytes(buf[17], buf[16]);
-  cal.mc  = from_bytes(buf[19], buf[18]);
-  cal.md  = from_bytes(buf[21], buf[20]);
+  cal.mb  = from_bytes16(buf[17], buf[16]);
+  cal.mc  = from_bytes16(buf[19], buf[18]);
+  cal.md  = from_bytes16(buf[21], buf[20]);
 
   LOG_DEBUG("BMP085 on adr 0x%x init OK\n", adr);
   return 0;
@@ -141,7 +141,7 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   rc = read_device(buf, 2);
   if (2 != rc) return -30;
 
-  uncompensated_temperature = from_bytes(buf[1], buf[0]); /* MSB then LSB */
+  uncompensated_temperature = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
   new_temperature_flag = 1;
 
   /*now schedule pressure update and return*/
@@ -168,16 +168,16 @@ void BMP085_read_temp(double* temperature, int* is_new_value) {
 }
 int BMP085_read_press(int32_t* pressure, int* is_new_value) {
   unsigned int delay = 1500 + (3000 << BMP085_oss); /* max delay is 1.5 + 3*<num_of_samples> ms */
-  if ( check_pressure_flag & ((micros() - last_pressure_schedule_mcs) >= delay) ) {
+  if ( check_pressure_flag && ((micros() - last_pressure_schedule_mcs) >= delay) ) {
     /* new value ready */
     char buf[3];
     buf[0] = BMP_DATA_MSB;
-    rc = write_device(buf, 1);
+    int rc = write_device(buf, 1);
     if (1 != rc) return -10;
     rc = read_device(buf, 3);
     if (3 != rc) return -20;
 
-    uncompensated_pressure = from_bytes(buf[2], buf[1], buf[0]); /* MSB then LSB then XLSB */
+    uncompensated_pressure = from_bytes24(buf[2], buf[1], buf[0]); /* MSB then LSB then XLSB */
     check_pressure_flag = 0;
 
     /* The compensated pressure in pascal (Pa) units. */
@@ -218,4 +218,6 @@ int BMP085_read_press(int32_t* pressure, int* is_new_value) {
     *is_new_value = 0;
   }
   *pressure = real_pressure;
+
+  return 0;
 }

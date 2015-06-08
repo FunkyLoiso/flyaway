@@ -92,9 +92,9 @@ int ADXL345_read(vector_double_3d* accs) {
   if (6 != rc) return -2;
   double k = 0.004; /* in highres mode the output is 0.004g per digit */
 
-  accs->x = k * from_bytes(buf[0], buf[1]); /* LSB then MSB */
-  accs->y = k * from_bytes(buf[2], buf[3]);
-  accs->z = k * from_bytes(buf[4], buf[5]);
+  accs->x = k * from_bytes16(buf[0], buf[1]); /* LSB then MSB */
+  accs->y = k * from_bytes16(buf[2], buf[3]);
+  accs->z = k * from_bytes16(buf[4], buf[5]);
 
   return 0;
 }

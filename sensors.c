@@ -104,7 +104,7 @@ int read_sensors(SENSOR_DATA *data)
   /* schedule a BMP085 update */
   static const unsigned int BMP085_temp_update_interval_ms = 1000;
   static unsigned int BMP085_last_temp_update = 0;
-  if( (millis() - BMP085_last_temp_update) < BMP085_temp_update_interval_ms ) {
+  if( is_value_new && (millis() - BMP085_last_temp_update) < BMP085_temp_update_interval_ms ) {
     /* too early for temp update */
     rc = BMP085_schedule_press_update();
   }

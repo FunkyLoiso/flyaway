@@ -56,9 +56,9 @@ int read_mag_raw(vector_int_3d* raw_data) {
   if (6 != rc) return -2;
 
   // sensor register order is X Z Y
-  raw_data->x = from_bytes(buf[1], buf[0]); /* MSB then LSB */
-  raw_data->z = from_bytes(buf[3], buf[2]);
-  raw_data->y = from_bytes(buf[5], buf[4]);
+  raw_data->x = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
+  raw_data->z = from_bytes16(buf[3], buf[2]);
+  raw_data->y = from_bytes16(buf[5], buf[4]);
 
   if ((raw_data->x == DATA_OUTPUT_OVERFLOW) |
       (raw_data->y == DATA_OUTPUT_OVERFLOW) |
