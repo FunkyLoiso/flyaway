@@ -4,6 +4,17 @@
 #include <stdint.h>
 #include <endian.h>
 
+static int16_t from_bytes16_limited(uint8_t low, uint8_t hi, uint8_t sig_bits) {
+  int16_t mask = ~(0xffff << sig_bits);
+  int16_t out = (low | (hi << 8)) & mask; /*  */
+  out = le16toh(out);
+  if (out & (1 << (sig_bits-1))) {/* number is negative */
+    out = ((out ^ mask) + 1);   /* undo two's complement */
+    out = -out;                 /* make native negative */
+  }
+  return out;
+}
+
 static int16_t from_bytes16(uint8_t low, uint8_t hi) {
   int16_t out = low | (hi << 8);
   out = le16toh(out);

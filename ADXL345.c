@@ -30,47 +30,52 @@ int read_device(char* buf, int len) {
 }
 
 /* public */
-int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode) {
+int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode, ADXL_DATA_RATE data_rate) {
+  if(range_mode < ADXL_RANGE_2g || range_mode > ADXL_RANGE_16g) {
+    LOG_ERROR("Wrong range mode for ADXL345: %d", range_mode);
+    return -1;
+  }
+
+  if(data_rate < ADXL_DATA_RATE_0_1 || data_rate > ADXL_DATA_RATE_3200) {
+    LOG_ERROR("Wrong data rate value for ADXL345: %d", data_rate);
+    return -5;
+  }
   int fd = wiringPiI2CSetup(adr);
   if (fd < 0)  {
-    return -1;
+    return -10;
   }
   adxl345_fd = fd;
   adxl345_adr = adr;
   adxl345_range_mode = range_mode;
 
   char buf[2];
-//put into measure mode
+  /* check device id */
+  buf[0] = DEVID;
+  int rc = write_device(buf, 1);
+  if(1 != rc) return -11;
+  rc = read_device(buf, 1);
+  if(1 != rc) return -12;
+  if(((uint8_t)buf[0]) != ID_ADXL345) {
+    LOG_ERROR("ADXL345 id expected 0x%x, got 0x%x", ID_ADXL345, buf[0]);
+    return -13;
+  }
+
+  /*set data rate*/
+  buf[0] = BW_RATE;
+  buf[1] = data_rate;
+  rc = write_device(buf, 2);
+  if(2 != rc) return -13;
+
+  /* put into measure mode*/
   buf[0] = POWER_CTL;
   buf[1] = PCTL_MEASURE;
 
-  int rc = write_device(buf, 2);
+  rc = write_device(buf, 2);
   if (2 != rc) return -2;
-
-  int range_bits = 0;
-  switch (range_mode)
-  {
-  case ADXL_RANGE_2g:
-    range_bits = RANGE_PM_2g;
-    break;
-  case ADXL_RANGE_4g:
-    range_bits = RANGE_PM_4g;
-    break;
-  case ADXL_RANGE_8g:
-    range_bits = RANGE_PM_8g;
-    break;
-  case ADXL_RANGE_16g:
-    range_bits = RANGE_PM_16g;
-    break;
-  default:
-    LOG_ERROR("Invalid ADXL range mode: %d", range_mode);
-    return -3;
-    break;
-  }
 
   //set resolution
   buf[0] = DATA_FORMAT;
-  buf[1] = FULL_RES | range_bits;
+  buf[1] = FULL_RES | range_mode;
   rc = write_device(buf, 2);
   if (2 != rc) return -4;
 
@@ -90,11 +95,12 @@ int ADXL345_read(vector_double_3d* accs) {
 
   rc = read_device((char *)buf, 6);
   if (6 != rc) return -2;
-  double k = 0.004; /* in highres mode the output is 0.004g per digit */
+  static const double k = 4.0/1024.0; /* in highres mode the output is 0.00390625g per digit */
+  uint8_t sig_bits = 8 + 2 + adxl345_range_mode; /* number of significant bits depends on range mode */
 
-  accs->x = k * from_bytes16(buf[0], buf[1]); /* LSB then MSB */
-  accs->y = k * from_bytes16(buf[2], buf[3]);
-  accs->z = k * from_bytes16(buf[4], buf[5]);
+  accs->x = k * from_bytes16_limited(buf[0], buf[1], sig_bits); /* LSB then MSB */
+  accs->y = k * from_bytes16_limited(buf[2], buf[3], sig_bits);
+  accs->z = k * from_bytes16_limited(buf[4], buf[5], sig_bits);
 
   return 0;
 }

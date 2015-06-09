@@ -18,13 +18,15 @@ HEADERS += ./ADXL345.h \
     ./vector.h \
     ./BMP085.h \
     ./BMP085_registers.h \
-    twos_complement.h
+    twos_complement.h \
+    cpu_cycles.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
     ./main.c \
     ./BMP085.c \
-    sensors.c
+    sensors.c \
+    cpu_cycles.cpp
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG

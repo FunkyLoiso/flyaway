@@ -43,7 +43,7 @@ double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure) {
 
 int init_sensors()
 {
-  int rc = ADXL345_init(0x53, ADXL_RANGE_16g); /* Our accelerometer detects on the "alternative address" 0x53 */
+  int rc = ADXL345_init(0x53, ADXL_RANGE_4g, ADXL_DATA_RATE_400); /* Our accelerometer detects on the "alternative address" 0x53 */
   if(rc) {
     LOG_ERROR("Error during ADXL345 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
     return rc;
