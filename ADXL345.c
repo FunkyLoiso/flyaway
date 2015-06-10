@@ -5,7 +5,10 @@ based on http://www.raspberrypi.org/forums/viewtopic.php?t=55834
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <math.h>
+
 #include <wiringPiI2C.h>
+#include <wiringPi.h>
 
 #include "ADXL345.h"
 #include "ADXL345_registers.h"
@@ -104,3 +107,41 @@ int ADXL345_read(vector_double_3d* accs) {
 
   return 0;
 }
+
+int ADXL345_set_zero_level() {
+  int rc = select_device();
+  if(rc) return rc;
+
+  vector_double_3d avg_data, cur_data;
+
+  static const int count = 20;
+  int i;
+  for(i = 0; i < count; ++i) {
+    rc = ADXL345_read(&cur_data);
+    if(rc) return rc;
+    avg_data.x += cur_data.x;
+    avg_data.y += cur_data.y;
+    avg_data.z += cur_data.z;
+
+    delay(10);
+  }
+
+  avg_data.x /= (double) count;
+  avg_data.y /= (double) count;
+  avg_data.z /= (double) count;
+
+  char buf[4];
+  buf[0] = OFSX;
+  buf[1] =  -rint( avg_data.x / 0.0156 );
+  buf[2] =  -rint( avg_data.y / 0.0156 );
+  buf[3] =  -rint( avg_data.z / 0.0156 );
+
+  rc = write_device(buf, 4);
+  if(4 != rc) return -100;
+
+  LOG_DEBUG("ADXL345 zero level set. Errors: %f %f %f, offsets written: %f %f %f",
+            -avg_data.x, -avg_data.y, -avg_data.z,
+            0.0156 * buf[1], 0.0156 * buf[2], 0.0156 * buf[3]);
+  return 0;
+}
+
