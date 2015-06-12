@@ -10,6 +10,7 @@
 #include "HMC5883_registers.h"
 #include "logging.h"
 #include "twos_complement.h"
+#include "cpu_cycles.h"
 
 int HMC5883_fd = -1;
 unsigned char HMC5883_adr = 0x00;
@@ -45,7 +46,7 @@ int gain_to_scale(HMC5883_GAIN gain) {
   }
 }
 
-int read_mag_raw(vector_int_3d* raw_data) {
+int read_mag_raw(sensor_sample_int_3d* raw_data) {
   char buf[6];
   buf[0] = HMC5883_MAG_X_HI;
 
@@ -54,22 +55,23 @@ int read_mag_raw(vector_int_3d* raw_data) {
 
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
+  raw_data->ts = cpu_cycles()
 
   // sensor register order is X Z Y
-  raw_data->x = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
-  raw_data->z = from_bytes16(buf[3], buf[2]);
-  raw_data->y = from_bytes16(buf[5], buf[4]);
+  raw_data->data.x = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
+  raw_data->data.z = from_bytes16(buf[3], buf[2]);
+  raw_data->data.y = from_bytes16(buf[5], buf[4]);
 
-  if ((raw_data->x == DATA_OUTPUT_OVERFLOW) |
-      (raw_data->y == DATA_OUTPUT_OVERFLOW) |
-      (raw_data->z == DATA_OUTPUT_OVERFLOW)) {
+  if ((raw_data->data.x == DATA_OUTPUT_OVERFLOW) |
+      (raw_data->data.y == DATA_OUTPUT_OVERFLOW) |
+      (raw_data->data.z == DATA_OUTPUT_OVERFLOW)) {
     return HMC5883_OVERFLOW;
   }
 
   return 0;
 }
 
-int selftest(vector_int_3d *out_data)
+int selftest(sensor_sample_int_3d *out_data)
 {
   static const int SELF_TEST_DELAY_MS = 250;
   int return_code = 0;
@@ -222,29 +224,31 @@ int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN ga
   return 0;
 }
 
-int HMC5883_read(vector_double_3d* mag) {
+int HMC5883_read(sensor_sample_3d* mag)
+{
   int rc = select_device();
   if (rc) return rc;
 
-  vector_int_3d raw_data;
+  sensor_sample_int_3d raw_data;
   rc = read_mag_raw(&raw_data);
   if (rc) return rc;
 
-  apply_sensitivity(&raw_data);
-  apply_offset(&raw_data);
+  apply_sensitivity(&raw_data.data);
+  apply_offset(&raw_data.data);
 
   double counts_per_Gauss = gain_to_scale(HMC5883_gain);
-  mag->x = ((double)raw_data.x) / counts_per_Gauss;
-  mag->y = ((double)raw_data.y) / counts_per_Gauss;
-  mag->z = ((double)raw_data.z) / counts_per_Gauss;
+  mag->data.x = ((double)raw_data.data.x) / counts_per_Gauss;
+  mag->data.y = ((double)raw_data.data.y) / counts_per_Gauss;
+  mag->data.z = ((double)raw_data.data.z) / counts_per_Gauss;
+  mag->ts = raw_data.ts;
 
   return 0;
 }
 
 int HMC5883_calibrate(int step) {
-  static vector_int_3d step_data[3];  /* sensor readings during calibration */
-  vector_int_3d dummy_data;           /* data from first sensor read (ignored) */
-  vector_int_3d test_data;            /* readings during self test */
+  static sensor_sample_int_3d step_data[3];  /* sensor readings during calibration */
+  sensor_sample_int_3d dummy_data;           /* data from first sensor read (ignored) */
+  sensor_sample_int_3d test_data;            /* readings during self test */
   int rc;
 
   /* Validate the supported calibration types and step number. */
@@ -259,9 +263,9 @@ int HMC5883_calibrate(int step) {
     if (rc) return -100 + rc;
 
     /* Calculate & store sensitivity adjustment values */
-    HMC5883_calibration_data.sensitivity.x = ((double)HMC5883_TEST_X_NORM) / test_data.x;
-    HMC5883_calibration_data.sensitivity.y = ((double)HMC5883_TEST_Y_NORM) / test_data.y;
-    HMC5883_calibration_data.sensitivity.z = ((double)HMC5883_TEST_Z_NORM) / test_data.z;
+    HMC5883_calibration_data.sensitivity.x = ((double)HMC5883_TEST_X_NORM) / test_data.data.x;
+    HMC5883_calibration_data.sensitivity.y = ((double)HMC5883_TEST_Y_NORM) / test_data.data.y;
+    HMC5883_calibration_data.sensitivity.z = ((double)HMC5883_TEST_Z_NORM) / test_data.data.z;
   }
 
   /* Read sensor data and test for data overflow.
@@ -288,9 +292,9 @@ int HMC5883_calibrate(int step) {
     /* Calculate & store the offsets on the final pass. */
   case 3:
     /*@TODO: I don't understand this shit. x offset is average between 1 and 2 step? Should the callibration rotations be exactly 90 degrees?*/
-    HMC5883_calibration_data.offset.x = (step_data[0].x + step_data[1].x) / 2;
-    HMC5883_calibration_data.offset.y = (step_data[0].y + step_data[1].y) / 2;
-    HMC5883_calibration_data.offset.z = (step_data[1].z + step_data[2].z) / 2;
+    HMC5883_calibration_data.offset.x = (step_data[0].data.x + step_data[1].data.x) / 2;
+    HMC5883_calibration_data.offset.y = (step_data[0].data.y + step_data[1].data.y) / 2;
+    HMC5883_calibration_data.offset.z = (step_data[1].data.z + step_data[2].data.z) / 2;
     break;
 
   default:

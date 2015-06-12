@@ -7,6 +7,7 @@
 #include "ITG3200_registers.h"
 #include "logging.h"
 #include "twos_complement.h"
+#include "cpu_cycles.h"
 
 int ITG3200_fd = -1;
 unsigned char ITG3200_adr = 0x00;
@@ -84,7 +85,7 @@ int ITG3200_get_samplerate() {
   return internal_freq / (ITG3200_divider + 1); // page 23
 }
 
-int ITG3200_read_temp(double* temp) {
+int ITG3200_read_temp(sensor_sample* temp) {
   int rc = select_device();
   if (rc) return rc;
 
@@ -96,16 +97,17 @@ int ITG3200_read_temp(double* temp) {
 
   rc = read_device(buf, 2);
   if (2 != rc) return -2;
+  temp->ts = cpu_cycles();
   
   /* based on ITG3200 driver from Atmel. They use be16_to_cpu. */
-  *temp = from_bytes16(buf[1], buf[0]) - TEMP_OFFSET; /* MSB then LSB */
-  *temp /= TEMP_COUNTS_PER_DEG_C;
-  *temp += TEMP_REF_DEG;
+  temp->val = from_bytes16(buf[1], buf[0]) - TEMP_OFFSET; /* MSB then LSB */
+  temp->val /= TEMP_COUNTS_PER_DEG_C;
+  temp->val += TEMP_REF_DEG;
 
   return 0;
 }
 
-int ITG3200_read_angular_vel(vector_double_3d *avels) {
+int ITG3200_read_angular_vel(sensor_sample_3d *avels) {
   int rc = select_device();
   if (rc) return rc;
 
@@ -117,10 +119,11 @@ int ITG3200_read_angular_vel(vector_double_3d *avels) {
 
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
+  avels->ts = cpu_cycles();
 
-  avels->x = ((double)from_bytes16(buf[0], buf[1])) / SCALE_LSB_PER_DPS;
-  avels->y = ((double)from_bytes16(buf[2], buf[3])) / SCALE_LSB_PER_DPS;
-  avels->z = ((double)from_bytes16(buf[4], buf[5])) / SCALE_LSB_PER_DPS;
+  avels->data.x = ((double)from_bytes16(buf[0], buf[1])) / SCALE_LSB_PER_DPS;
+  avels->data.y = ((double)from_bytes16(buf[2], buf[3])) / SCALE_LSB_PER_DPS;
+  avels->data.z = ((double)from_bytes16(buf[4], buf[5])) / SCALE_LSB_PER_DPS;
 
   return 0;
 }

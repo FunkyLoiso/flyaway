@@ -20,16 +20,16 @@
 static const int32_t std_sealevel_pressure = 101325;
 
 typedef struct {
-  vector_double_3d acc_data;  /* ADXL345 accelerations, m/s^2 */
-  vector_double_3d avel_data; /* ITG3200 angular velocicites, deg/s */
-  double itg3200_temp;        /* ITG3200 temperature, deg c */
-  vector_double_3d mag_data;  /* HMC5883 magnetic inductions, gauss  */
-  double bmp085_temp;         /* BMP085 temperature, deg c */
-  double altitude;            /* BMP085 altitude, m */
-} SENSOR_DATA;
+  sensor_sample_3d acc_data;  /* ADXL345 accelerations, m/s^2 */
+  sensor_sample_3d avel_data; /* ITG3200 angular velocicites, deg/s */
+  sensor_sample itg3200_temp; /* ITG3200 temperature, deg c */
+  sensor_sample_3d mag_data;  /* HMC5883 magnetic inductions, gauss  */
+  sensor_sample bmp085_temp;  /* BMP085 temperature, deg c */
+  sensor_sample altitude;     /* BMP085 altitude, m */
+} sensor_data;
 
 double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure);
 int init_sensors();
-int read_sensors(SENSOR_DATA* data);
+int read_sensors(sensor_data* data);
 
 #endif

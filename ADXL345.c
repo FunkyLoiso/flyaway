@@ -14,6 +14,7 @@ based on http://www.raspberrypi.org/forums/viewtopic.php?t=55834
 #include "ADXL345_registers.h"
 #include "logging.h"
 #include "twos_complement.h"
+#include "cpu_cycles.h"
 
 int adxl345_fd = -1;
 unsigned char adxl345_adr = 0x00;
@@ -86,7 +87,7 @@ int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode, ADXL_DATA_RATE d
   return 0;
 }
 
-int ADXL345_read(vector_double_3d* accs) {
+int ADXL345_read(sensor_sample_3d* accs) {
   int rc = select_device();
   if (rc) return rc;
 
@@ -98,12 +99,14 @@ int ADXL345_read(vector_double_3d* accs) {
 
   rc = read_device((char *)buf, 6);
   if (6 != rc) return -2;
+  accs->ts = cpu_cycles();
+
   static const double k = 4.0/1024.0; /* in highres mode the output is 0.00390625g per digit */
   uint8_t sig_bits = 8 + 2 + adxl345_range_mode; /* number of significant bits depends on range mode */
 
-  accs->x = k * from_bytes16_limited(buf[0], buf[1], sig_bits); /* LSB then MSB */
-  accs->y = k * from_bytes16_limited(buf[2], buf[3], sig_bits);
-  accs->z = k * from_bytes16_limited(buf[4], buf[5], sig_bits);
+  accs->data.x = k * from_bytes16_limited(buf[0], buf[1], sig_bits); /* LSB then MSB */
+  accs->data.y = k * from_bytes16_limited(buf[2], buf[3], sig_bits);
+  accs->data.z = k * from_bytes16_limited(buf[4], buf[5], sig_bits);
 
   return 0;
 }

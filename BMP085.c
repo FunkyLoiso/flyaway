@@ -11,6 +11,7 @@
 #include "BMP085_registers.h"
 #include "logging.h"
 #include "twos_complement.h"
+#include "cpu_cycles.h"
 
 int BMP085_fd = -1;
 unsigned char BMP085_adr = 0x00;
@@ -33,10 +34,12 @@ struct {
 
 int32_t uncompensated_temperature = -1;
 int32_t real_temperature = -1;
+long long temperature_ts = 0;
 int new_temperature_flag = 0;
 
 int32_t uncompensated_pressure = -1;
 int32_t real_pressure = -1;
+long long pressure_ts = 0;
 unsigned int last_pressure_schedule_mcs = 0;
 int check_pressure_flag = 0;
 
@@ -142,6 +145,7 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   if (2 != rc) return -30;
 
   uncompensated_temperature = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
+  temperature_ts = cpu_cycles();
   new_temperature_flag = 1;
 
   /*now schedule pressure update and return*/
@@ -150,7 +154,8 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   return 0;
 }
 
-void BMP085_read_temp(double* temperature, int* is_new_value) {
+void BMP085_read_temp(sensor_sample* temperature, int* is_new_value)
+{
   if (new_temperature_flag) {
     int32_t const x1 = ((uncompensated_temperature - cal.ac6) * cal.ac5) >> 15;
     int32_t const x2 = ((int32_t)cal.mc << 11) / (x1 + cal.md);
@@ -164,9 +169,12 @@ void BMP085_read_temp(double* temperature, int* is_new_value) {
     *is_new_value = 0;
   }
 
-  *temperature = real_temperature;
+  temperature->val = real_temperature;
+  temperature->ts = temperature_ts;
+
 }
-int BMP085_read_press(int32_t* pressure, int* is_new_value) {
+int BMP085_read_press(sensor_sample_int32* pressure, int* is_new_value)
+{
   unsigned int delay = 1500 + (3000 << BMP085_oss); /* max delay is 1.5 + 3*<num_of_samples> ms */
   if ( check_pressure_flag && ((micros() - last_pressure_schedule_mcs) >= delay) ) {
     /* new value ready */
@@ -178,6 +186,7 @@ int BMP085_read_press(int32_t* pressure, int* is_new_value) {
     if (3 != rc) return -20;
 
     uncompensated_pressure = from_bytes24(buf[2], buf[1], buf[0]); /* MSB then LSB then XLSB */
+	pressure_ts = cpu_cycles();
     check_pressure_flag = 0;
 
     /* The compensated pressure in pascal (Pa) units. */
@@ -217,7 +226,9 @@ int BMP085_read_press(int32_t* pressure, int* is_new_value) {
     /* new value not yet ready */
     *is_new_value = 0;
   }
-  *pressure = real_pressure;
+  pressure->val = real_pressure;
+  pressure->ts = pressure_ts;
+
 
   return 0;
 }

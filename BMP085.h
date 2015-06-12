@@ -15,7 +15,7 @@ int BMP085_init(unsigned char adr, BMP085_OVERSAMPLING_SETTING oss);
 int BMP085_schedule_press_update();
 int BMP085_schedule_press_temp_update(); /* blocks for 4.5 ms  */
 
-void BMP085_read_temp(double* temperature, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_temp_update call */
-int BMP085_read_press(int32_t* pressure, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_updatek call */
+void BMP085_read_temp(sensor_sample* temperature, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_temp_update call */
+int BMP085_read_press(sensor_sample_int32* pressure, int* is_new_value); /* Doesn't block, writes 1 to is_new_value if the value has changed since last BMP085_schedule_press_updatek call */
 
 #endif

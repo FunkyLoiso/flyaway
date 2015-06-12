@@ -32,7 +32,7 @@ typedef struct {
 } HMC5883_CALIBRATION_DATA;
 
 int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN gain);
-int HMC5883_read(vector_double_3d* mag);
+int HMC5883_read(sensor_sample_3d* mag);
 
 int HMC5883_calibrate(int step);
 void HMC5883_get_calibration_data(HMC5883_CALIBRATION_DATA* data);

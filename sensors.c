@@ -93,7 +93,7 @@ int init_sensors()
 }
 
 
-int read_sensors(SENSOR_DATA *data)
+int read_sensors(sensor_data *data)
 {
   /* @TODO: do result code checking */
   int rc = ADXL345_read(&data->acc_data);

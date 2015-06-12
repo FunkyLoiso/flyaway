@@ -31,6 +31,6 @@ typedef enum {
 
 int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE mode, ADXL_DATA_RATE data_rate);
 int ADXL345_set_zero_level();
-int ADXL345_read(vector_double_3d* accs);
+int ADXL345_read(sensor_sample_3d* accs);
 
 #endif
