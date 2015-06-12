@@ -218,7 +218,7 @@ int HMC5883_init(unsigned char adr, HMC5883_DATA_RATE data_rate, HMC5883_GAIN ga
   rc = write_device(buf, 2);
   if (2 != rc) return -6;
 
-  LOG_DEBUG("HMC5883 on adr 0x%x init OK\n", adr);
+  LOG_DEBUG("HMC5883 on adr 0x%x init OK", adr);
   return 0;
 }
 

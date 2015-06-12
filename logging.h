@@ -5,7 +5,7 @@
 
 #define LOG_ERROR(...) {fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n");}
 #ifdef _DEBUG
-  #define LOG_DEBUG(...) {fprintf(stdout, __VA_ARGS__); fprintf(stdout, "\n");}
+  #define LOG_DEBUG(...) {printf(__VA_ARGS__); printf("\n");}
 #else
   #define LOG_DEBUG(...)
 #endif

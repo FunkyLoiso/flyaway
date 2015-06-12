@@ -75,7 +75,7 @@ int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_
   rc = write_device(buf, 2);
   if (2 != rc) return -8;
 
-  LOG_DEBUG("ITG3200 on adr 0x%x init OK\n", adr);
+  LOG_DEBUG("ITG3200 on adr 0x%x init OK", adr);
   return 0;
 }
 

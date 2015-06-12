@@ -49,6 +49,12 @@ int init_sensors()
     return rc;
   }
 
+  rc = ADXL345_set_zero_level();
+  if (rc) {
+    LOG_ERROR("Error during ADXL345 zero level setting. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    return rc;
+  }
+
   rc = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_20, 3); /* 20 Hz lopass filter, 1000/(3+1) = 250Hz update */
   if(rc) {
     LOG_ERROR("Error during ITG3200 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));

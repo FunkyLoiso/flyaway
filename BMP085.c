@@ -105,7 +105,7 @@ int BMP085_init(unsigned char adr, BMP085_OVERSAMPLING_SETTING oss) {
   cal.mc  = from_bytes16(buf[19], buf[18]);
   cal.md  = from_bytes16(buf[21], buf[20]);
 
-  LOG_DEBUG("BMP085 on adr 0x%x init OK\n", adr);
+  LOG_DEBUG("BMP085 on adr 0x%x init OK", adr);
   return 0;
 }
 

@@ -4,6 +4,7 @@
 static const long long RASPBERRY_PI_FREQ_HZ = 700000000; /* 700 MHz */
 
 long long cpu_cycles();
+
 inline long long cycles_to_ns(long long cycles) {
   return cycles * 1000000000 / RASPBERRY_PI_FREQ_HZ;
 }

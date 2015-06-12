@@ -27,6 +27,7 @@ void loop(void) {
   /* 2. Read sensors. */
   int rc = read_sensors(&sensor_data);
   /* 3. Calculate sensor fusion data */
+  
   /* 4. Calculate sensor-based data */
   /* 5. Perform linear velocities regulation */
   /* 6. Perform roll regulation */
@@ -41,7 +42,7 @@ void loop(void) {
 
   static unsigned int last_output = 0;
   if(millis() - last_output > 1000) {
-    printf("acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f\n\n",
+    printf("acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f\n",
            sensor_data.acc_data.x, sensor_data.acc_data.y, sensor_data.acc_data.z,
            sensor_data.altitude,
            sensor_data.avel_data.x, sensor_data.avel_data.y, sensor_data.avel_data.z,

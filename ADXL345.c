@@ -82,7 +82,7 @@ int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode, ADXL_DATA_RATE d
   rc = write_device(buf, 2);
   if (2 != rc) return -4;
 
-  LOG_DEBUG("ADXL345 on adr 0x%x init OK\n", adr);
+  LOG_DEBUG("ADXL345 on adr 0x%x init OK", adr);
   return 0;
 }
 
