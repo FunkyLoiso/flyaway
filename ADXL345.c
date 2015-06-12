@@ -115,16 +115,17 @@ int ADXL345_set_zero_level() {
   int rc = select_device();
   if(rc) return rc;
 
-  vector_double_3d avg_data, cur_data;
+  sensor_sample_3d cur_data;
+  vector_double_3d avg_data;
 
   static const int count = 20;
   int i;
   for(i = 0; i < count; ++i) {
     rc = ADXL345_read(&cur_data);
     if(rc) return rc;
-    avg_data.x += cur_data.x;
-    avg_data.y += cur_data.y;
-    avg_data.z += cur_data.z;
+    avg_data.x += cur_data.data.x;
+    avg_data.y += cur_data.data.y;
+    avg_data.z += cur_data.data.z;
 
     delay(10);
   }

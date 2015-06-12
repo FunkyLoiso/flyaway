@@ -1,6 +1,8 @@
 #ifndef VECTOR_H_INCLUDED
 #define VECTOR_H_INCLUDED
 
+#include <stdint.h>
+
 typedef struct {
   int x, y, z;
 } vector_int_3d;

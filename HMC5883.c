@@ -55,7 +55,7 @@ int read_mag_raw(sensor_sample_int_3d* raw_data) {
 
   rc = read_device(buf, 6);
   if (6 != rc) return -2;
-  raw_data->ts = cpu_cycles()
+  raw_data->ts = cpu_cycles();
 
   // sensor register order is X Z Y
   raw_data->data.x = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
@@ -281,7 +281,7 @@ int HMC5883_calibrate(int step) {
   if (rc) return -300 + rc;
 
   /* Apply sensitivity scaling factors */
-  apply_sensitivity(&(step_data[step - 1]));
+  apply_sensitivity(&(step_data[step - 1]).data);
 
   switch (step) {
     /* There's nothing more to do on the first two passes. */

@@ -102,10 +102,11 @@ int read_sensors(sensor_data *data)
   rc = HMC5883_read(&data->mag_data);
 
   int is_value_new;
-  int pressure;
+  sensor_sample_int32 pressure;
   BMP085_read_temp(&data->bmp085_temp, &is_value_new);
   BMP085_read_press(&pressure, &is_value_new);
-  data->altitude = pressure_to_altitude(std_sealevel_pressure, pressure);
+  data->altitude.val = pressure_to_altitude(std_sealevel_pressure, pressure.val);
+  data->altitude.ts = pressure.ts;
 
   /* schedule a BMP085 update */
   static const unsigned int BMP085_temp_update_interval_ms = 1000;

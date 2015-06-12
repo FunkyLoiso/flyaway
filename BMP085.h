@@ -2,6 +2,7 @@
 #define BMP085_H_INCLUDED
 
 #include <stdint.h>
+#include "vector.h"
 
 typedef enum {
   BMP085_1_INT_SAMPLE = 0,  /* Ultra low power, 3 + 1.5 = 4.5 ms delay */

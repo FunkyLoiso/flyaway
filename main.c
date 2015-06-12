@@ -19,13 +19,13 @@ void setup(void) {
 }
 
 input_commands_t input_cmd;
-SENSOR_DATA sensor_data;
+sensor_data raw_sensor_data;
 
 void loop(void) {
   /* 1. Read operator commands. */
   read_test_inputs(&input_cmd);
   /* 2. Read sensors. */
-  int rc = read_sensors(&sensor_data);
+  int rc = read_sensors(&raw_sensor_data);
   /* 3. Calculate sensor fusion data */
   
   /* 4. Calculate sensor-based data */
@@ -43,12 +43,12 @@ void loop(void) {
   static unsigned int last_output = 0;
   if(millis() - last_output > 1000) {
     printf("acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f\n",
-           sensor_data.acc_data.x, sensor_data.acc_data.y, sensor_data.acc_data.z,
-           sensor_data.altitude,
-           sensor_data.avel_data.x, sensor_data.avel_data.y, sensor_data.avel_data.z,
-           sensor_data.bmp085_temp,
-           sensor_data.itg3200_temp,
-           sensor_data.mag_data.x, sensor_data.mag_data.y, sensor_data.mag_data.z);
+           raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
+           raw_sensor_data.altitude.val,
+           raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
+           raw_sensor_data.bmp085_temp.val,
+           raw_sensor_data.itg3200_temp.val,
+           raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
     last_output = millis();
     fflush(stdout);
   }
