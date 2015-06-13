@@ -4,6 +4,7 @@
 
 #include "input.h"
 #include "sensors.h"
+#include "sensor_fusion.h"
 
 /* 
  *  Rules:
@@ -20,14 +21,18 @@ void setup(void) {
 
 input_commands_t input_cmd;
 sensor_data raw_sensor_data;
+fused_sensor_data fused_data;
 
 void loop(void) {
   /* 1. Read operator commands. */
   read_test_inputs(&input_cmd);
   /* 2. Read sensors. */
   int rc = read_sensors(&raw_sensor_data);
+  if(rc){
+
+  }
   /* 3. Calculate sensor fusion data */
-  
+  fuse_sensor_data(&raw_sensor_data, &fused_data);
   /* 4. Calculate sensor-based data */
   /* 5. Perform linear velocities regulation */
   /* 6. Perform roll regulation */

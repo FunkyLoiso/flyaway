@@ -43,7 +43,7 @@ double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure) {
 
 int init_sensors()
 {
-  int rc = ADXL345_init(0x53, ADXL_RANGE_4g, ADXL_DATA_RATE_400); /* Our accelerometer detects on the "alternative address" 0x53 */
+  int rc = ADXL345_init(0x53, ADXL_RANGE_4g, ADXL_DATA_RATE_400); /* Our accelerometer detects on the "alternative address" 0x53. 400 Hz update */
   if(rc) {
     LOG_ERROR("Error during ADXL345 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
     return rc;
@@ -55,13 +55,13 @@ int init_sensors()
     return rc;
   }
 
-  rc = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_20, 3); /* 20 Hz lopass filter, 1000/(3+1) = 250Hz update */
+  rc = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_20, 3); /* 20 Hz lowpass filter, 1000/(3+1) = 250Hz update */
   if(rc) {
     LOG_ERROR("Error during ITG3200 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
     return rc;
   }
 
-  rc = HMC5883_init(0x1E, HMC5883_DATA_RATE_75HZ, HMC5883_GAIN_7_9GA); /* 75 Hz update, +-0.9gauss value range (Earth field is 0.31 - 0.58 gauss) */
+  rc = HMC5883_init(0x1E, HMC5883_DATA_RATE_75HZ, HMC5883_GAIN_0_9GA); /* 75 Hz update, +-0.9gauss value range (Earth field is 0.31 - 0.58 gauss) */
   if(rc) {
     LOG_ERROR("Error during HMC5883 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
     return rc;
@@ -104,7 +104,7 @@ int read_sensors(sensor_data *data)
   int is_value_new;
   sensor_sample_int32 pressure;
   BMP085_read_temp(&data->bmp085_temp, &is_value_new);
-  BMP085_read_press(&pressure, &is_value_new);
+  rc = BMP085_read_press(&pressure, &is_value_new);
   data->altitude.val = pressure_to_altitude(std_sealevel_pressure, pressure.val);
   data->altitude.ts = pressure.ts;
 
