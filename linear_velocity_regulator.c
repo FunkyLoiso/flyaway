@@ -8,30 +8,27 @@
 typedef struct {
   double Kp;
   double Kd;
-  double angle_limit;
+  double angle_limit_rad;
 
   integration_context ictx;
 }context;
 
-double limit(double val, double min_limit, double max_limit){
-  return fmin( max_limit, fmax(val, min_limit) );
-}
-
-lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double angle_limit)
+lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double angle_limit_rad)
 {
   context* ctx = (context*)malloc(sizeof(context));
   ctx->Kp = Kp;
   ctx->Kd = Kd;
-  ctx->angle_limit = abs(angle_limit);
+  ctx->angle_limit_rad = abs(angle_limit_rad);
 
   integration_context ictx = {0.0};
-  ctx->ictx = ictx;
+  ctx->ictx = create_integrator(0.0);
 
   return ctx;
 }
 
 void destroy_lin_vel_regulator(lin_vel_regulator_context ctx)
 {
+  destroy_integrator( ((context*)ctx)->ictx );
   free(ctx);
 }
 
@@ -46,11 +43,11 @@ void destroy_lin_vel_regulator(lin_vel_regulator_context ctx)
 double regulate_lin_vel(lin_vel_regulator_context ctx, double desired_vel, double lin_acc, double time_s)
 {
   context* ctx_ = (context*)ctx;
-  integrate(&ctx_->ictx, lin_acc, time_s);
+  double lin_vel = integrate(&ctx_->ictx, lin_acc, time_s);
 
-  double unlimited_angle =  ((desired_vel - ctx_->ictx.accumulated_value) * ctx_->Kp) -
+  double unlimited_angle =  ((desired_vel - lin_vel) * ctx_->Kp) -
                             (lin_acc * ctx_->Kd);
 
-  return limit(unlimited_angle, -ctx_->angle_limit, ctx_->angle_limit);
+  return limit(unlimited_angle, -ctx_->angle_limit_rad, ctx_->angle_limit_rad);
 }
 

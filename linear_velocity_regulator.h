@@ -3,7 +3,7 @@
 
 typedef void* lin_vel_regulator_context;
 
-lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double angle_limit);
+lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double angle_limit_rad);
 void destroy_lin_vel_regulator(lin_vel_regulator_context ctx);
 
 /* returns angle command in radians

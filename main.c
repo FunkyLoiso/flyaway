@@ -8,6 +8,7 @@
 #include "sensors.h"
 #include "sensor_fusion.h"
 #include "linear_velocity_regulator.h"
+#include "angle_regulator.h"
 
 /* 
  *  Rules:
@@ -19,6 +20,8 @@ input_commands_t input_cmd;
 sensor_data raw_sensor_data;
 fused_sensor_data fused_data;
 lin_vel_regulator_context lvr_ctx_x, lvr_ctx_y;
+angle_regulator_context ar_ctx_yaw, ar_ctx_pitch, ar_ctx_roll;
+
 
 int loop(void) {
   long long start = cpu_cycles();
@@ -38,8 +41,14 @@ int loop(void) {
   double roll_cmd_rad = regulate_lin_vel(lvr_ctx_y, input_cmd.cmd_vel_y, fused_data.lin_acc.y, fused_data.time_s);
 
   /* 5. Perform roll regulation */
+  double d_trottle_roll = regulate_angle(ar_ctx_roll, roll_cmd_rad, fused_data.attitude.roll, fused_data.avel.x, fused_data.time_s);
+
   /* 6. Perform pitch regulation */
+  double d_trottle_pitch = regulate_angle(ar_ctx_pitch, pitch_cmd_rad, fused_data.attitude.pitch, fused_data.avel.y, fused_data.time_s);
+
   /* 7. Perform yaw regulation */
+  double d_trottle_yaw = regulate_angle(ar_ctx_yaw, input_cmd.cmd_yaw, fused_data.attitude.yaw, fused_data.avel.z, fused_data.time_s);
+
   /* 8. Perform height regulation */
   /* 9. Do control signal mixing */
   /*10. Set motor controller PWMs */
@@ -74,6 +83,7 @@ int main(void)
     exit(rc);
   }
 
+  /* linear velocity regulators */
   lvr_ctx_x = create_lin_vel_regulator(0.32, 0.1, 12.0 * M_PI / 180.0);
   lvr_ctx_y = create_lin_vel_regulator(0.32, 0.1, 12.0 * M_PI / 180.0);
 
@@ -82,10 +92,20 @@ int main(void)
     exit(10);
   }
 
+  /* angle regulators */
+  ar_ctx_pitch = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
+  ar_ctx_roll = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
+  ar_ctx_yaw = create_angle_regulator(4.0, 0.5, 3.5, 1.0);
+
+
   while( !loop() );
 
   destroy_lin_vel_regulator(lvr_ctx_x);
   destroy_lin_vel_regulator(lvr_ctx_y);
+
+  destroy_angle_regulator(ar_ctx_pitch);
+  destroy_angle_regulator(ar_ctx_roll);
+  destroy_angle_regulator(ar_ctx_yaw);
 
   return 0;
 }
