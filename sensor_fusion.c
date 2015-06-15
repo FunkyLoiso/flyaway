@@ -66,4 +66,5 @@ void fuse_sensor_data(sensor_data data, fused_sensor_data* out_fused_data)
   out_fused_data->altitude = data->altitude.val;
   out_fused_data->avel = data->avel_data.data;
   out_fused_data->ts = cur_ts;
+  out_fused_data->time_s = cycles_to_s(cur_ts);
 }
