@@ -1,5 +1,7 @@
 #include "integration.h"
 
+#include <stdlib.h> /* malloc, free */
+
 #include "math_funcs.h"
 
 

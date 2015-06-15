@@ -20,6 +20,8 @@ angle_regulator_context create_angle_regulator(double Kp, double Ki, double Kd, 
   ctx->Ki = Ki;
   ctx->Kd = Kd;
   ctx->ictx = create_integrator(integrator_limit_rad);
+
+  return ctx;
 }
 
 void destroy_angle_regulator(angle_regulator_context ctx)

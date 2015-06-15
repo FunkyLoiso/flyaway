@@ -6,7 +6,7 @@
 static const vector_double_3d gravity_acc_I = {0.0, 0.0, -1.0}; /* gravity acceleration vector in g relative to inertial frame of reference */
 static long long last_ts = 0;
 
-static matrix_double_3x3 quat_to_matrix(double q0, double q1, double q2, double q3, matrix_double_3x3* out_matrix) {
+static matrix_double_3x3 quat_to_matrix(double q0, double q1, double q2, double q3) {
   matrix_double_3x3 res;
   double sq_q1 = 2 * q1 * q1;
   double sq_q2 = 2 * q2 * q2;
@@ -26,6 +26,8 @@ static matrix_double_3x3 quat_to_matrix(double q0, double q1, double q2, double 
   res.cols[2].x = q1_q3 - q2_q0;
   res.cols[2].y = q2_q3 + q1_q0;
   res.cols[2].z = 1 - sq_q1 - sq_q2;
+
+  return res;
 }
 
 void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
@@ -42,7 +44,7 @@ void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
                         cycles_to_s(cur_ts - last_ts));
   }
 
-  matrix_double_3x3 rot_matrix = quat_to_matrix(q0, q1, q2, q3, &rot_matrix);
+  matrix_double_3x3 rot_matrix = quat_to_matrix(q0, q1, q2, q3);
   /*  taken from android frameworks OrientationSensor.cpp
       vec3_t g;
       const float rad2deg = 180 / M_PI;

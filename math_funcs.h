@@ -3,7 +3,7 @@
 
 #include <math.h>
 
-double limit(double val, double min_limit, double max_limit){
+static double limit(double val, double min_limit, double max_limit){
   return fmin( max_limit, fmax(val, min_limit) );
 }
 

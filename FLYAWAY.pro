@@ -23,7 +23,9 @@ HEADERS += ./ADXL345.h \
     integration.h \
     linear_velocity_regulator.h \
     MadgwickAHRS.h \
-    sensor_fusion.h
+    sensor_fusion.h \
+    angle_regulator.h \
+    math_funcs.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
@@ -34,7 +36,8 @@ SOURCES += ./ADXL345.c \
     integration.c \
     linear_velocity_regulator.c \
     MadgwickAHRS.c \
-    sensor_fusion.c
+    sensor_fusion.c \
+    angle_regulator.c
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG

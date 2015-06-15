@@ -3,6 +3,7 @@
 #include <math.h>   /* fmin, fmax */
 #include <stdlib.h> /* malloc, free */
 
+#include "math_funcs.h"
 #include "integration.h"
 
 typedef struct {
@@ -20,7 +21,6 @@ lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double 
   ctx->Kd = Kd;
   ctx->angle_limit_rad = abs(angle_limit_rad);
 
-  integration_context ictx = {0.0};
   ctx->ictx = create_integrator(0.0);
 
   return ctx;
