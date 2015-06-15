@@ -58,13 +58,9 @@ void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
       outEvent->orientation.pitch   = g.y;
       outEvent->orientation.roll    = g.z;
   */
-
   out_fused_data->attitude.yaw    = atan2( -rot_matrix.cols[1].x, rot_matrix.cols[0].x );
   out_fused_data->attitude.pitch  = atan2( -rot_matrix.cols[2].y, rot_matrix.cols[2].z );
   out_fused_data->attitude.roll   = asin( rot_matrix.cols[2].x );
-  if (out_fused_data->attitude.yaw < 0.0) {
-    out_fused_data->attitude.yaw += 2*M_PI;
-  }
 
   /* calculate gravity acceleration as 1g vector pointing -z */
   vector_double_3d gravity_acc = cross_product_double_3d(gravity_acc_I, rot_matrix.cols[2]);
