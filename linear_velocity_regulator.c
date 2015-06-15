@@ -1,5 +1,8 @@
 #include "linear_velocity_regulator.h"
 
+#include <math.h>   /* fmin, fmax */
+#include <stdlib.h> /* malloc, free */
+
 #include "integration.h"
 
 typedef struct {
@@ -11,7 +14,7 @@ typedef struct {
 }context;
 
 double limit(double val, double min_limit, double max_limit){
-  return min( max_limit, max(val, min_limit) );
+  return fmin( max_limit, fmax(val, min_limit) );
 }
 
 lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double angle_limit)

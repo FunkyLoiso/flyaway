@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "logging.h"
+#include "cpu_cycles.h"
 #include "input.h"
 #include "sensors.h"
 #include "sensor_fusion.h"

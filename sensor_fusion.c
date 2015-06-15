@@ -8,7 +8,7 @@ static const vector_double_3d gravity_acc_I = {0.0, 0.0, 1.0}; /* gravity accele
 static long long last_ts = 0;
 static vector_double_4d attitude = {1.0, 0.0, 0.0, 0.0};
 
-static quat_to_matrix(vector_double_4d quat, matrix_double_3x3* out_matrix) {
+static void quat_to_matrix(vector_double_4d quat, matrix_double_3x3* out_matrix) {
   double q0 = quat.q0;
   double q1 = quat.q1;
   double q2 = quat.q2;
@@ -33,7 +33,7 @@ static quat_to_matrix(vector_double_4d quat, matrix_double_3x3* out_matrix) {
   out_matrix->cols[2].z = 1 - sq_q1 - sq_q2;
 }
 
-void fuse_sensor_data(sensor_data data, fused_sensor_data* out_fused_data)
+void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
 {
   const long long cur_ts = data->acc_data.ts; /* use accelerometer ts as the base one */
 
@@ -58,9 +58,9 @@ void fuse_sensor_data(sensor_data data, fused_sensor_data* out_fused_data)
   quat_to_matrix(attitude, &rot_matrix);
   vector_double_3d gravity_acc = cross_product_double_3d(gravity_acc_I, rot_matrix.cols[2]);
   /* calculate linear acceleration as total acceleration - gravity acceleration */
-  out_fused_data->lin_acc.x = data.acc_data.data.x - gravity_acc.x;
-  out_fused_data->lin_acc.y = data.acc_data.data.y - gravity_acc.y;
-  out_fused_data->lin_acc.z = data.acc_data.data.z - gravity_acc.z;
+  out_fused_data->lin_acc.x = data->acc_data.data.x - gravity_acc.x;
+  out_fused_data->lin_acc.y = data->acc_data.data.y - gravity_acc.y;
+  out_fused_data->lin_acc.z = data->acc_data.data.z - gravity_acc.z;
 
   /* copy angular velocities and altitude */
   out_fused_data->altitude = data->altitude.val;

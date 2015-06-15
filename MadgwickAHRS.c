@@ -50,7 +50,7 @@ void MadgwickAHRSupdate(double gx, double gy, double gz, double ax, double ay, d
 
 	// Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
 	if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
-		MadgwickAHRSupdateIMU(gx, gy, gz, ax, ay, az);
+    MadgwickAHRSupdateIMU(gx, gy, gz, ax, ay, az, dt_s);
 		return;
 	}
 

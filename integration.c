@@ -1,3 +1,4 @@
+#include "integration.h"
 
 void integrate(integration_context* ctx, double value, double cur_time_s)
 {

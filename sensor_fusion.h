@@ -2,6 +2,7 @@
 #define sensor_fusion_h__
 
 #include "vector.h"
+#include "sensors.h"
 
 typedef struct {
   vector_double_4d attitude;

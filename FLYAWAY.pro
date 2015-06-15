@@ -19,14 +19,22 @@ HEADERS += ./ADXL345.h \
     ./BMP085.h \
     ./BMP085_registers.h \
     twos_complement.h \
-    cpu_cycles.h
+    cpu_cycles.h \
+    integration.h \
+    linear_velocity_regulator.h \
+    MadgwickAHRS.h \
+    sensor_fusion.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
     ./main.c \
     ./BMP085.c \
     sensors.c \
-    cpu_cycles.cpp
+    cpu_cycles.cpp \
+    integration.c \
+    linear_velocity_regulator.c \
+    MadgwickAHRS.c \
+    sensor_fusion.c
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG
