@@ -12,6 +12,10 @@ typedef struct {
 } vector_double_3d;
 
 typedef struct {
+  double pitch, yaw, roll;
+} orientation;
+
+typedef struct {
   double q0, q1, q2, q3;
 } vector_double_4d;
 

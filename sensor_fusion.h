@@ -5,7 +5,7 @@
 #include "sensors.h"
 
 typedef struct {
-  vector_double_4d attitude;
+  orientation attitude;
   vector_double_3d avel;
   vector_double_3d lin_acc;
   double altitude;
