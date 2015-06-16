@@ -1,8 +1,10 @@
 #include "altitude_regulator.h"
 
+#include <stdlib.h> /* malloc, free */
+
 #include "integration.h"
 
-struct {
+typedef struct {
   double Kp, Ki, Kd;
   double gravity_offset;
   integration_context int_ctx;
@@ -24,7 +26,7 @@ void destroy_altitude_regulator(altitude_regulator_context ctx)
 {
   context* ctx_ = (context*) ctx;
   destroy_integrator(ctx_->int_ctx);
-  destroy_differentiator(ctx->->diff_ctx);
+  destroy_differentiator(ctx_->diff_ctx);
   free(ctx);
 }
 

@@ -1,8 +1,9 @@
 #include "differentiaton.h"
 
 #include <stdlib.h> /* malloc, free */
+#include <string.h> /* memmove */
 
-//#include "math_funcs.h"
+#include "logging.h"
 
 typedef struct {
   differentiation_mode mode;
@@ -50,10 +51,11 @@ double differentiate(differentiaton_context ctx, double value, double cur_time_s
       ret = (point_value[1] - point_value[-1]) / (point_time[1] - point_time[-1]);
       break;
 
-    case DIFF_DELAY2:
-      double r1 = 4.0/3.0 * (point_value[1] - point_value[-1]) / (point_time[1] - point_time[-1]);
-      double r2 = 1.0/3.0 * (point_value[2] - point_value[-2]) / (point_time[2] - point_time[-2]);
-      ret = r1 - r2;
+    case DIFF_DELAY2: {
+        double r1 = 4.0/3.0 * (point_value[1] - point_value[-1]) / (point_time[1] - point_time[-1]);
+        double r2 = 1.0/3.0 * (point_value[2] - point_value[-2]) / (point_time[2] - point_time[-2]);
+        ret = r1 - r2;
+      }
       break;
 
     default:
