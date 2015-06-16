@@ -17,6 +17,13 @@ static matrix_double_3x3 quat_to_matrix(double q0, double q1, double q2, double 
   double q2_q0 = 2 * q2 * q0;
   double q2_q3 = 2 * q2 * q3;
   double q1_q0 = 2 * q1 * q0;
+
+  /* maybe wrong column/row order?
+  http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/ suggests
+  1 - 2*qy2 - 2*qz2  2*qx*qy - 2*qz*qw  2*qx*qz + 2*qy*qw
+  2*qx*qy + 2*qz*qw  1 - 2*qx2 - 2*qz2  2*qy*qz - 2*qx*qw
+  2*qx*qz - 2*qy*qw	 2*qy*qz + 2*qx*qw	1 - 2*qx2 - 2*qy2
+  */
   res.cols[0].x = 1 - sq_q2 - sq_q3;
   res.cols[0].y = q1_q2 - q3_q0;
   res.cols[0].z = q1_q3 + q2_q0;
@@ -59,6 +66,21 @@ void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
       outEvent->orientation.azimuth = g.x;
       outEvent->orientation.pitch   = g.y;
       outEvent->orientation.roll    = g.z;
+
+
+      other info:
+      heading = atan2(2*qy*qw-2*qx*qz , 1 - 2*qy2 - 2*qz2)  yaw
+      attitude = asin(2*qx*qy + 2*qz*qw)                    pitch
+      bank = atan2(2*qx*qw-2*qy*qz , 1 - 2*qx2 - 2*qz2)     roll
+
+      except when qx*qy + qz*qw = 0.5 (north pole)
+      which gives:
+      heading = 2 * atan2(x,w)
+      bank = 0
+      and when qx*qy + qz*qw = -0.5 (south pole)
+      which gives:
+      heading = -2 * atan2(x,w)
+      bank = 0
   */
   out_fused_data->attitude.yaw    = atan2( -rot_matrix.cols[1].x, rot_matrix.cols[0].x );
   out_fused_data->attitude.pitch  = atan2( -rot_matrix.cols[2].y, rot_matrix.cols[2].z );

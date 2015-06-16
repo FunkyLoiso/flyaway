@@ -9,6 +9,7 @@
 #include "sensor_fusion.h"
 #include "linear_velocity_regulator.h"
 #include "angle_regulator.h"
+#include "altitude_regulator.h"
 
 /* 
  *  Rules:
@@ -21,6 +22,7 @@ sensor_data raw_sensor_data;
 fused_sensor_data fused_data;
 lin_vel_regulator_context lvr_ctx_x, lvr_ctx_y;
 angle_regulator_context ar_ctx_yaw, ar_ctx_pitch, ar_ctx_roll;
+altitude_regulator_context alt_reg_ctx;
 
 
 int loop(void) {
@@ -49,7 +51,9 @@ int loop(void) {
   /* 7. Perform yaw regulation */
   double d_trottle_yaw = regulate_angle(ar_ctx_yaw, input_cmd.cmd_yaw, fused_data.attitude.yaw, fused_data.avel.z, fused_data.time_s);
 
-  /* 8. Perform height regulation */
+  /* 8. Perform altitude regulation */
+  double d_trottle_alt = regulate_altitude(alt_reg_ctx, input_cmd.cmd_h, fused_data.altitude, fused_data.time_s);
+
   /* 9. Do control signal mixing */
   /*10. Set motor controller PWMs */
   /*11. Send telemetry */
@@ -97,6 +101,8 @@ int main(void)
   ar_ctx_roll = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
   ar_ctx_yaw = create_angle_regulator(4.0, 0.5, 3.5, 1.0);
 
+  /* altitude regulator */
+  alt_reg_ctx = create_altitude_regulator(2.0, 1.1, 3.3, 38.8672, 1.0, DIFF_FAST);
 
   while( !loop() );
 
@@ -106,6 +112,8 @@ int main(void)
   destroy_angle_regulator(ar_ctx_pitch);
   destroy_angle_regulator(ar_ctx_roll);
   destroy_angle_regulator(ar_ctx_yaw);
+
+  destroy_altitude_regulator(alt_reg_ctx);
 
   return 0;
 }
