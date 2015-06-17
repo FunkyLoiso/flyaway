@@ -10,6 +10,7 @@
 #include "linear_velocity_regulator.h"
 #include "angle_regulator.h"
 #include "altitude_regulator.h"
+#include "throttle_mixing.h"
 
 /* 
  *  Rules:
@@ -23,7 +24,8 @@ fused_sensor_data fused_data;
 lin_vel_regulator_context lvr_ctx_x, lvr_ctx_y;
 angle_regulator_context ar_ctx_yaw, ar_ctx_pitch, ar_ctx_roll;
 altitude_regulator_context alt_reg_ctx;
-
+throttle_correction thr_correction;
+motors_throttles motors_thr;
 
 int loop(void) {
   long long start = cpu_cycles();
@@ -43,18 +45,20 @@ int loop(void) {
   double roll_cmd_rad = regulate_lin_vel(lvr_ctx_y, input_cmd.cmd_vel_y, fused_data.lin_acc.y, fused_data.time_s);
 
   /* 5. Perform roll regulation */
-  double d_trottle_roll = regulate_angle(ar_ctx_roll, roll_cmd_rad, fused_data.attitude.roll, fused_data.avel.x, fused_data.time_s);
+  thr_correction.d_throttle_roll = regulate_angle(ar_ctx_roll, roll_cmd_rad, fused_data.attitude.roll, fused_data.avel.x, fused_data.time_s);
 
   /* 6. Perform pitch regulation */
-  double d_trottle_pitch = regulate_angle(ar_ctx_pitch, pitch_cmd_rad, fused_data.attitude.pitch, fused_data.avel.y, fused_data.time_s);
+  thr_correction.d_throttle_pitch = regulate_angle(ar_ctx_pitch, pitch_cmd_rad, fused_data.attitude.pitch, fused_data.avel.y, fused_data.time_s);
 
   /* 7. Perform yaw regulation */
-  double d_trottle_yaw = regulate_angle(ar_ctx_yaw, input_cmd.cmd_yaw, fused_data.attitude.yaw, fused_data.avel.z, fused_data.time_s);
+  thr_correction.d_throttle_yaw = regulate_angle(ar_ctx_yaw, input_cmd.cmd_yaw, fused_data.attitude.yaw, fused_data.avel.z, fused_data.time_s);
 
   /* 8. Perform altitude regulation */
-  double d_trottle_alt = regulate_altitude(alt_reg_ctx, input_cmd.cmd_h, fused_data.altitude, fused_data.time_s);
+  thr_correction.d_throttle_alt = regulate_altitude(alt_reg_ctx, input_cmd.cmd_h, fused_data.altitude, fused_data.time_s);
 
   /* 9. Do control signal mixing */
+  mix_throttles(&thr_correction, &motors_thr);
+
   /*10. Set motor controller PWMs */
   /*11. Send telemetry */
   static unsigned int last_output = 0;
