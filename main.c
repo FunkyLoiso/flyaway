@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <wiringPi.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
 #include "logging.h"
 #include "cpu_cycles.h"

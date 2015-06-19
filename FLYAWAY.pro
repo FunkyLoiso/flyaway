@@ -27,7 +27,9 @@ HEADERS += ./ADXL345.h \
     angle_regulator.h \
     math_funcs.h \
     altitude_regulator.h \
-    differentiaton.h
+    differentiaton.h \
+    motors_controller.h \
+    PCA9685_registers.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
@@ -41,7 +43,8 @@ SOURCES += ./ADXL345.c \
     sensor_fusion.c \
     angle_regulator.c \
     altitude_regulator.c \
-    differentiaton.c
+    differentiaton.c \
+    motors_controller.c
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG

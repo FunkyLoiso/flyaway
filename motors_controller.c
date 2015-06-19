@@ -6,6 +6,7 @@
 #include <math.h>
 #include <wiringPiI2C.h>
 #include <wiringPi.h>
+#include <unistd.h>
 
 #include "logging.h"
 #include "PCA9685_registers.h"
@@ -32,9 +33,11 @@ static int write_device(char* buf, int len) {
   return write(PCA9685_fd, buf, len);
 }
 
+/*
 static int read_device(char* buf, int len) {
   return read(PCA9685_fd, buf, len);
 }
+*/
 
 static int map_throttle(double throttle) {
   return rint( (throttle * duty_cycle_limits.width + duty_cycle_limits.min) * 4096 );
@@ -96,7 +99,7 @@ int init_motors_controller(unsigned char adr, int front_ch, int tail_ch, int lef
   /* set auto increment mode and remove sleep bit */
   buf[0] = PCA9685_MODE1;
   buf[1] = MODE1_AUTO_INCREMENT;
-  int rc = write_device(buf, 2);
+  rc = write_device(buf, 2);
   if(2 != rc) return -70;
 
   return 0;
