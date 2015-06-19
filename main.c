@@ -11,6 +11,7 @@
 #include "angle_regulator.h"
 #include "altitude_regulator.h"
 #include "throttle_mixing.h"
+#include "motors_controller.h"
 
 /* 
  *  Rules:
@@ -60,6 +61,9 @@ int loop(void) {
   mix_throttles(&thr_correction, &motors_thr);
 
   /*10. Set motor controller PWMs */
+  rc = set_motors_throttles(motors_thr);
+  if(rc) return rc;
+
   /*11. Send telemetry */
   static unsigned int last_output = 0;
   if(millis() - last_output > 1000) {
@@ -88,6 +92,13 @@ int main(void)
 {
   int rc = init_sensors();
   if(rc) {
+    exit(rc);
+  }
+
+  /* default address is 0100 0000 */
+  rc = init_motors_controller(0x64, 0, 4, 8, 12, 0.3, 0.8, 200);
+  if(rc) {
+    LOG_ERROR("Error during PCA9685 init. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
     exit(rc);
   }
 
