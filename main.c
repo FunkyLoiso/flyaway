@@ -21,14 +21,14 @@
  *  2. No file io in release build
  */
 
-input_commands_t input_cmd;
-sensor_data raw_sensor_data;
-fused_sensor_data fused_data;
-lin_vel_regulator_context lvr_ctx_x, lvr_ctx_y;
-angle_regulator_context ar_ctx_yaw, ar_ctx_pitch, ar_ctx_roll;
-altitude_regulator_context alt_reg_ctx;
-throttle_correction thr_correction;
-motors_throttles motors_thr;
+input_commands_t input_cmd = {0.0};
+sensor_data raw_sensor_data = {0.0};
+fused_sensor_data fused_data = {0.0};
+lin_vel_regulator_context lvr_ctx_x = 0, lvr_ctx_y = 0;
+angle_regulator_context ar_ctx_yaw = 0, ar_ctx_pitch = 0, ar_ctx_roll = 0;
+altitude_regulator_context alt_reg_ctx = 0;
+throttle_correction thr_correction = {0.0};
+motors_throttles motors_thr = {0.0};
 
 int loop(void) {
   long long start = cpu_cycles();
@@ -97,10 +97,15 @@ int main(void)
     exit(rc);
   }
 
+  rc = zero_altitude();
+  if(rc) {
+    exit(rc);
+  }
+
   /* default address is 0100 0000 */
   rc = init_motors_controller(0x64, 0, 4, 8, 12, 0.3, 0.8, 200);
   if(rc) {
-    LOG_ERROR("Error during PCA9685 init. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR_ERRNO("Error during PCA9685 init. Internal code: %d,", rc);
     exit(rc);
   }
 
@@ -109,7 +114,7 @@ int main(void)
   lvr_ctx_y = create_lin_vel_regulator(0.32, 0.1, 12.0 * M_PI / 180.0);
 
   if(0 == lvr_ctx_x || 0 == lvr_ctx_y) {
-    LOG_ERROR("error creating linear velocity regulators");
+    LOG_ERROR("Error creating linear velocity regulators");
     exit(10);
   }
 
@@ -117,9 +122,17 @@ int main(void)
   ar_ctx_pitch = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
   ar_ctx_roll = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
   ar_ctx_yaw = create_angle_regulator(4.0, 0.5, 3.5, 1.0);
+  if(0 == ar_ctx_roll || 0 = ar_ctx_pitch || 0 == ar_ctx_yaw) {
+    LOG_ERROR("Error creating angle regulators");
+    exit(20);
+  }
 
   /* altitude regulator */
   alt_reg_ctx = create_altitude_regulator(2.0, 1.1, 3.3, 38.8672, 1.0, DIFF_FAST);
+  if(0 == alt_reg_ctx) {
+    LOG_ERROR("Error creating altitude regulator");
+    exit(30);
+  }
 
   while( !loop() );
 

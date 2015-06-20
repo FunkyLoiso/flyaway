@@ -7,6 +7,8 @@
 
 //#define CALLIBRATE_HMC5883
 
+static double zero_altitude_abs; /* altitude which should be considered zero */
+
 static int calibrate_HMC5883() {
   printf("HMC5883 calibration procedure start\n");
 
@@ -45,32 +47,32 @@ int init_sensors()
 {
   int rc = ADXL345_init(0x53, ADXL_RANGE_4g, ADXL_DATA_RATE_400); /* Our accelerometer detects on the "alternative address" 0x53. 400 Hz update */
   if(rc) {
-    LOG_ERROR("Error during ADXL345 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR_ERRNO("Error during ADXL345 initialization. Internal code: %d,", rc);
     return rc;
   }
 
   rc = ADXL345_set_zero_level();
   if (rc) {
-    LOG_ERROR("Error during ADXL345 zero level setting. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR("Error during ADXL345 zero level setting. Internal code: %d,", rc);
     return rc;
   }
 
   rc = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_20, 3); /* 20 Hz lowpass filter, 1000/(3+1) = 250Hz update */
   if(rc) {
-    LOG_ERROR("Error during ITG3200 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR("Error during ITG3200 initialization. Internal code: %d,", rc);
     return rc;
   }
 
   rc = HMC5883_init(0x1E, HMC5883_DATA_RATE_75HZ, HMC5883_GAIN_0_9GA); /* 75 Hz update, +-0.9gauss value range (Earth field is 0.31 - 0.58 gauss) */
   if(rc) {
-    LOG_ERROR("Error during HMC5883 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR("Error during HMC5883 initialization. Internal code: %d,", rc);
     return rc;
   }
   /* HMC5883 calibration can be done here */
 #ifdef CALLIBRATE_HMC5883
   rc = callibrate_HMC5883();
   if(rc) {
-    LOG_ERROR("Error during HMC5883 calibration. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR("Error during HMC5883 calibration. Internal code: %d,", rc);
     return rc;
   }
 
@@ -79,13 +81,13 @@ int init_sensors()
 
   rc = BMP085_init(0x77, BMP085_2_INT_SAMPLES); /* 1,5 + 2*3 = 7,5 ms interval => 133 Hz update */
   if(rc) {
-    LOG_ERROR("Error during BMP085 initialization. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR("Error during BMP085 initialization. Internal code: %d,", rc);
     return rc;
   }
 
   rc = BMP085_schedule_press_temp_update();
   if(rc) {
-    LOG_ERROR("Error during HMC5883 pressure&temp update scheduling. Internal code: %d, errno: %d\nstrerror: \"%s\"", rc, errno, strerror(errno));
+    LOG_ERROR("Error during HMC5883 pressure&temp update scheduling. Internal code: %d,", rc);
     return rc;
   }
 
@@ -95,16 +97,35 @@ int init_sensors()
 
 int read_sensors(sensor_data *data)
 {
-  /* @TODO: do result code checking */
   int rc = ADXL345_read(&data->acc_data);
+  if(rc) {
+    LOG_ERROR_ERRNO("Error reading ADXL345 data, code %d", rc);
+    return rc;
+  }
   rc = ITG3200_read_temp(&data->itg3200_temp);
+  if(rc) {
+    LOG_ERROR_ERRNO("Error reading ITG3200 temperature data, code %d", rc);
+    return rc;
+  }
   rc = ITG3200_read_angular_vel(&data->avel_data);
+  if(rc) {
+    LOG_ERROR_ERRNO("Error reading ITG3200 angular velocity data, code %d", rc);
+    return rc;
+  }
   rc = HMC5883_read(&data->mag_data);
+  if(rc) {
+    LOG_ERROR_ERRNO("Error reading HMC5883 magnetic data, code %d", rc);
+    return rc;
+  }
 
   int is_value_new;
   sensor_sample_int32 pressure;
   BMP085_read_temp(&data->bmp085_temp, &is_value_new);
   rc = BMP085_read_press(&pressure, &is_value_new);
+  if(rc) {
+    LOG_ERROR_ERRNO("Error reading BMP085 pressure, code %d", rc);
+    return rc;
+  }
   data->altitude.val = pressure_to_altitude(std_sealevel_pressure, pressure.val);
   data->altitude.ts = pressure.ts;
 
@@ -114,11 +135,33 @@ int read_sensors(sensor_data *data)
   if( is_value_new && (millis() - BMP085_last_temp_update) < BMP085_temp_update_interval_ms ) {
     /* too early for temp update */
     rc = BMP085_schedule_press_update();
+    if(rc) {
+      LOG_ERROR_ERRNO("Error scheduling BMP085 pressure update, code %d", rc);
+      return rc;
+    }
   }
   else {
     rc = BMP085_schedule_press_temp_update(); /* this blocks for 4.5 ms */
+    if(rc) {
+      LOG_ERROR_ERRNO("Error scheduling BMP085 temperature update, code %d", rc);
+      return rc;
+    }
     BMP085_last_temp_update = millis();
   }
 
+  return 0;
+}
+
+int zero_altitude()
+{
+  int is_value_new;
+  sensor_sample_int32 pressure;
+  int rc = BMP085_read_press(&pressure, &is_value_new);
+  if(rc) {
+    LOG_ERROR_ERRNO("Error reading BMP085 pressure to zero altitude, code %d", rc);
+    return rc;
+  }
+
+  zero_altitude_abs = pressure_to_altitude(std_sealevel_pressure, pressure.val);
   return 0;
 }

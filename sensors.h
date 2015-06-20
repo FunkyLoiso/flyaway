@@ -31,5 +31,6 @@ typedef struct {
 double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure);
 int init_sensors();
 int read_sensors(sensor_data* data);
+int zero_altitude();
 
 #endif
