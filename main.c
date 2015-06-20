@@ -90,7 +90,7 @@ int loop(void) {
   return 0;
 }
 
-int main(void)
+int main(int argc, const char* argv[])
 {
   int rc = init_sensors();
   if(rc) {
