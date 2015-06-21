@@ -17,7 +17,7 @@
 
 #include "vector.h"
 
-static const int32_t std_sealevel_pressure = 101325;
+static const double std_sealevel_pressure = 101325.0;
 
 typedef struct {
   sensor_sample_3d acc_data;  /* ADXL345 accelerations, g */
@@ -28,7 +28,7 @@ typedef struct {
   sensor_sample altitude;     /* BMP085 altitude, m */
 } sensor_data;
 
-double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure);
+double pressure_to_altitude(double sealevel_pressure, double pressure);
 int init_sensors();
 int read_sensors(sensor_data* data);
 int zero_altitude();

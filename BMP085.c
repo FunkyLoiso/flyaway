@@ -33,7 +33,7 @@ struct {
 } cal = {0};
 
 int32_t uncompensated_temperature = -1;
-int32_t real_temperature = -1;
+double real_temperature = -1.0;
 long long temperature_ts = 0;
 int new_temperature_flag = 0;
 
@@ -144,7 +144,8 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   rc = read_device(buf, 2);
   if (2 != rc) return -30;
 
-  uncompensated_temperature = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
+//  uncompensated_temperature = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
+  uncompensated_temperature = (buf[0] << 8) | buf[1];
   temperature_ts = cpu_cycles();
   new_temperature_flag = 1;
 
@@ -161,6 +162,7 @@ void BMP085_read_temp(sensor_sample* temperature, int* is_new_value)
     int32_t const x2 = ((int32_t)cal.mc << 11) / (x1 + cal.md);
 
     real_temperature = ((double)( ((x1 + x2) + 8) >> 4 )) / 10.0; /* temperature output is in 0.1 of deg c */
+//    real_temperature = ((double)((x1 + x2) + 8)) / 160.0;
 
     new_temperature_flag = 0;
     *is_new_value = 1;
@@ -185,8 +187,10 @@ int BMP085_read_press(sensor_sample_int32* pressure, int* is_new_value)
     rc = read_device(buf, 3);
     if (3 != rc) return -20;
 
-    uncompensated_pressure = from_bytes24(buf[2], buf[1], buf[0]); /* MSB then LSB then XLSB */
-	pressure_ts = cpu_cycles();
+//    uncompensated_pressure = from_bytes24(buf[2], buf[1], buf[0]); /* MSB then LSB then XLSB */
+    uncompensated_pressure = ( (buf[0] << 16) | (buf[1] << 8) | buf[2] ) >> (8-BMP085_oss);
+
+    pressure_ts = cpu_cycles();
     check_pressure_flag = 0;
 
     /* The compensated pressure in pascal (Pa) units. */

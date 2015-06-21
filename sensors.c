@@ -41,7 +41,7 @@ static int calibrate_HMC5883() {
 }
 #endif
 
-double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure) {
+double pressure_to_altitude(double sealevel_pressure, double pressure) {
   return 44330 * (1.0 - pow(pressure /sealevel_pressure,0.1903));
 }
 

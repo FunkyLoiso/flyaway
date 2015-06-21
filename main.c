@@ -103,7 +103,7 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   /* default address is 0100 0000 */
-  rc = init_motors_controller(0x64, 0, 4, 8, 12, 0.3, 0.8, 200);
+  rc = init_motors_controller(0x40, 0, 4, 8, 12, 0.3, 0.8, 200);
   if(rc) {
     LOG_ERROR_ERRNO("Error during PCA9685 init. Internal code: %d,", rc);
     exit(rc);
