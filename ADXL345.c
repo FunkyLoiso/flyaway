@@ -35,12 +35,12 @@ int read_device(char* buf, int len) {
 
 /* public */
 int ADXL345_init(unsigned char adr, ADXL_RANGE_MODE range_mode, ADXL_DATA_RATE data_rate) {
-  if(range_mode < ADXL_RANGE_2g || range_mode > ADXL_RANGE_16g) {
+  if(range_mode > ADXL_RANGE_16g) {
     LOG_ERROR("Wrong range mode for ADXL345: %d", range_mode);
     return -1;
   }
 
-  if(data_rate < ADXL_DATA_RATE_0_1 || data_rate > ADXL_DATA_RATE_3200) {
+  if(data_rate > ADXL_DATA_RATE_3200) {
     LOG_ERROR("Wrong data rate value for ADXL345: %d", data_rate);
     return -5;
   }

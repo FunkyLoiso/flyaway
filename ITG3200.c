@@ -29,7 +29,7 @@ static int read_device(char* buf, int len) {
 
 /* public */
 int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_SAMPLERATE_DIVIDER divider) {
-  if (bandwidth < ITG3200_FILTER_BANDWIDTH_MIN || bandwidth > ITG3200_FILTER_BANDWIDTH_MAX) {
+  if (bandwidth > ITG3200_FILTER_BANDWIDTH_MAX) {
     LOG_ERROR("Invalid bandwidth value %d", bandwidth);
     return -1;
   }
@@ -98,7 +98,7 @@ int ITG3200_read_temp(sensor_sample* temp) {
   rc = read_device(buf, 2);
   if (2 != rc) return -2;
   temp->ts = cpu_cycles();
-  
+
   /* based on ITG3200 driver from Atmel. They use be16_to_cpu. */
   temp->val = from_bytes16(buf[1], buf[0]) - TEMP_OFFSET; /* MSB then LSB */
   temp->val /= TEMP_COUNTS_PER_DEG_C;

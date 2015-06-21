@@ -29,14 +29,14 @@ HEADERS += ./ADXL345.h \
     altitude_regulator.h \
     differentiaton.h \
     motors_controller.h \
-    PCA9685_registers.h
+    PCA9685_registers.h \
+    throttle_mixing.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
     ./main.c \
     ./BMP085.c \
     sensors.c \
-    cpu_cycles.cpp \
     integration.c \
     linear_velocity_regulator.c \
     MadgwickAHRS.c \
@@ -44,8 +44,14 @@ SOURCES += ./ADXL345.c \
     angle_regulator.c \
     altitude_regulator.c \
     differentiaton.c \
-    motors_controller.c
+    motors_controller.c \
+    throttle_mixing.c \
+    cpu_cycles.c \
+    vector.c \
+    twos_complement.c
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG
+
+QMAKE_CFLAGS += -Wno-missing-field-initializers
 }

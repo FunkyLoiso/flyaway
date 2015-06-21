@@ -9,6 +9,7 @@
 
 static double zero_altitude_abs; /* altitude which should be considered zero */
 
+#ifdef CALLIBRATE_HMC5883
 static int calibrate_HMC5883() {
   printf("HMC5883 calibration procedure start\n");
 
@@ -38,6 +39,7 @@ static int calibrate_HMC5883() {
 
   return 0;
 }
+#endif
 
 double pressure_to_altitude(int32_t sealevel_pressure, int32_t pressure) {
   return 44330 * (1.0 - pow(pressure /sealevel_pressure,0.1903));

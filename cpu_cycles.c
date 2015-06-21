@@ -23,7 +23,7 @@ fini(void)
  close(fddev);
 }
 
-inline long long cpu_cycles()
+long long cpu_cycles()
 {
  long long result = 0;
  if (read(fddev, &result, sizeof(result)) != sizeof(result)) return 0;

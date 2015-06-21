@@ -21,14 +21,14 @@
  *  2. No file io in release build
  */
 
-input_commands_t input_cmd = {0.0};
-sensor_data raw_sensor_data = {0.0};
-fused_sensor_data fused_data = {0.0};
+input_commands_t input_cmd = {};
+sensor_data raw_sensor_data = {};
+fused_sensor_data fused_data = {};
 lin_vel_regulator_context lvr_ctx_x = 0, lvr_ctx_y = 0;
 angle_regulator_context ar_ctx_yaw = 0, ar_ctx_pitch = 0, ar_ctx_roll = 0;
 altitude_regulator_context alt_reg_ctx = 0;
-throttle_correction thr_correction = {0.0};
-motors_throttles motors_thr = {0.0};
+throttle_correction thr_correction = {};
+motors_throttles motors_thr = {};
 
 int loop(void) {
   long long start = cpu_cycles();
@@ -90,7 +90,7 @@ int loop(void) {
   return 0;
 }
 
-int main(int argc, const char* argv[])
+int main(/*int argc, const char* argv[]*/)
 {
   int rc = init_sensors();
   if(rc) {
@@ -122,7 +122,7 @@ int main(int argc, const char* argv[])
   ar_ctx_pitch = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
   ar_ctx_roll = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
   ar_ctx_yaw = create_angle_regulator(4.0, 0.5, 3.5, 1.0);
-  if(0 == ar_ctx_roll || 0 = ar_ctx_pitch || 0 == ar_ctx_yaw) {
+  if(0 == ar_ctx_roll || 0 == ar_ctx_pitch || 0 == ar_ctx_yaw) {
     LOG_ERROR("Error creating angle regulators");
     exit(20);
   }

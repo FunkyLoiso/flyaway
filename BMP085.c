@@ -58,7 +58,7 @@ static int read_device(char* buf, int len) {
 
 /* public */
 int BMP085_init(unsigned char adr, BMP085_OVERSAMPLING_SETTING oss) {
-  if (oss < BMP085_1_INT_SAMPLE || oss > BMP085_8_INT_SAMPLES) {
+  if (oss > BMP085_8_INT_SAMPLES) {
     LOG_ERROR("Invalid BMP085_OVERSAMPLING_SETTING value: %d", oss);
     return -1;
   }

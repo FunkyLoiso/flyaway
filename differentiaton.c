@@ -9,13 +9,13 @@ typedef struct {
   differentiation_mode mode;
   double values[5];
   double times[5];
-  int samples_collected;
+  unsigned samples_collected;
 } context;
 
 differentiaton_context create_differentiator(differentiation_mode mode)
 {
   context* ctx = (context*) malloc(sizeof(context));
-  *ctx = (context) {mode, {0.0}, 0.0, 0};
+  *ctx = (context) {mode, {}, {}, 0};
   return ctx;
 }
 
