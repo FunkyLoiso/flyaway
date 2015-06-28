@@ -1,7 +1,8 @@
 #ifndef CPU_CYCLES_H_INCLUDED
 #define CPU_CYCLES_H_INCLUDED
 
-static const long long RASPBERRY_PI_FREQ_HZ = 700000000; /* 700 MHz */
+//static const long long RASPBERRY_PI_FREQ_HZ = 700000000; /* 700 MHz */
+static const long long RASPBERRY_PI_FREQ_HZ = 1000000;
 
 long long cpu_cycles();
 

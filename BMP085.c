@@ -32,7 +32,11 @@ struct {
   int16_t md;
 } cal = {0};
 
-int32_t uncompensated_temperature = -1;
+int32_t uncompensated_temperature = 35500; /* 24.9 deg C */
+const uint32_t min_ut = 31500; /* -0.7 deg C */
+const uint32_t max_ut = 41500; /* 57.2 deg C */
+int32_t temp_error_counter = 0; /* increments each time thermometer provides out ob bounds value */
+
 double real_temperature = -1.0;
 long long temperature_ts = 0;
 int new_temperature_flag = 0;
@@ -126,9 +130,11 @@ int BMP085_schedule_press_update() {
   return 0;
 }
 
-int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
+int BMP085_schedule_press_temp_update() { /* blocks for 5 ms  */
   int rc = select_device();
   if (rc) return rc;
+
+  delayMicroseconds(500); /* Temperature value is often wrong without this delay */
 
   char buf[2];
   buf[0] = BMP_CONTROL;
@@ -144,10 +150,17 @@ int BMP085_schedule_press_temp_update() { /* blocks for 4.5 ms  */
   rc = read_device(buf, 2);
   if (2 != rc) return -30;
 
-//  uncompensated_temperature = from_bytes16(buf[1], buf[0]); /* MSB then LSB */
-  uncompensated_temperature = (buf[0] << 8) | buf[1];
-  temperature_ts = cpu_cycles();
-  new_temperature_flag = 1;
+  uint32_t new_ut = (buf[0] << 8) | buf[1];
+  if(new_ut > min_ut && new_ut < max_ut)
+  {
+    uncompensated_temperature = new_ut;
+    new_temperature_flag = 1;
+    temperature_ts = cpu_cycles();
+  }
+  else
+  {
+    ++temp_error_counter;
+  }
 
   /*now schedule pressure update and return*/
   rc = BMP085_schedule_press_update();

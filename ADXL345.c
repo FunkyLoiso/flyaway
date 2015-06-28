@@ -93,16 +93,31 @@ int ADXL345_read(sensor_sample_3d* accs) {
 
   char buf[6];
   buf[0] = DATAX0;
+  buf[2] = DATAY0;
+  buf[4] = DATAZ0;
 
   rc = write_device(buf, 1);
-  if (1 != rc) return -1;
+  if (1 != rc) return -10;
 
-  rc = read_device((char *)buf, 6);
-  if (6 != rc) return -2;
+//  rc = read_device(buf, 6);
+//  if (6 != rc) return -20;
+
+  rc = read_device(buf, 2);
+  if (2 != rc) return -20;
+
+  rc = write_device(buf+2, 1);
+  if (1 != rc) return -10;
+  rc = read_device(buf+2, 2);
+  if (2 != rc) return -21;
+
+  rc = write_device(buf+4, 1);
+  if (1 != rc) return -10;
+  rc = read_device(buf+4, 2);
+  if (2 != rc) return -22;
   accs->ts = cpu_cycles();
 
   static const double k = 4.0/1024.0; /* in highres mode the output is 0.00390625g per digit */
-  uint8_t sig_bits = 8 + 2 + adxl345_range_mode; /* number of significant bits depends on range mode */
+  const uint8_t sig_bits = 8 + 2 + adxl345_range_mode; /* number of significant bits depends on range mode */
 
   accs->data.x = k * from_bytes16_limited(buf[0], buf[1], sig_bits); /* LSB then MSB */
   accs->data.y = k * from_bytes16_limited(buf[2], buf[3], sig_bits);

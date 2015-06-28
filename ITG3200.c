@@ -121,9 +121,9 @@ int ITG3200_read_angular_vel(sensor_sample_3d *avels) {
   if (6 != rc) return -2;
   avels->ts = cpu_cycles();
 
-  avels->data.x = ((double)from_bytes16(buf[0], buf[1])) / SCALE_LSB_PER_DPS;
-  avels->data.y = ((double)from_bytes16(buf[2], buf[3])) / SCALE_LSB_PER_DPS;
-  avels->data.z = ((double)from_bytes16(buf[4], buf[5])) / SCALE_LSB_PER_DPS;
+  avels->data.x = ((double)from_bytes16(buf[1], buf[0])) / SCALE_LSB_PER_DPS;
+  avels->data.y = ((double)from_bytes16(buf[3], buf[2])) / SCALE_LSB_PER_DPS;
+  avels->data.z = ((double)from_bytes16(buf[5], buf[4])) / SCALE_LSB_PER_DPS;
 
   return 0;
 }

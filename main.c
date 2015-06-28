@@ -63,13 +63,14 @@ int loop(void) {
   mix_throttles(&thr_correction, &motors_thr);
 
   /*10. Set motor controller PWMs */
-  rc = set_motors_throttles(motors_thr);
-  if(rc) return rc;
+  /*rc = set_motors_throttles(motors_thr);
+  if(rc) return rc;*/
 
   /*11. Send telemetry */
   static unsigned int last_output = 0;
-  if(millis() - last_output > 1000) {
-    printf("acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f\n",
+  if(millis() - last_output > 500) {
+    printf("%f acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f\n",
+      cycles_to_s( raw_sensor_data.acc_data.ts ),
       raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
       raw_sensor_data.altitude.val,
       raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
@@ -81,11 +82,11 @@ int loop(void) {
   }
 
   /*12. Perform loop frequency limiting */
-  static const long long min_cycle_length_mcs = 5000; /* 200 Hz */
-  const long long time_left_mcs = min_cycle_length_mcs - cycles_to_mcs( cpu_cycles() - start );
-  if(time_left_mcs > 0) {
-    delayMicroseconds(time_left_mcs);
-  }
+//  static const long long min_cycle_length_mcs = 5000; /* 200 Hz */
+//  const long long time_left_mcs = min_cycle_length_mcs - cycles_to_mcs( cpu_cycles() - start );
+//  if(time_left_mcs > 0) {
+//    delayMicroseconds(time_left_mcs);
+//  }
 
   return 0;
 }
@@ -103,11 +104,11 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   /* default address is 0100 0000 */
-  rc = init_motors_controller(0x40, 0, 4, 8, 12, 0.3, 0.8, 200);
+  /*rc = init_motors_controller(0x40, 0, 4, 8, 12, 0.3, 0.8, 200);
   if(rc) {
     LOG_ERROR_ERRNO("Error during PCA9685 init. Internal code: %d,", rc);
     exit(rc);
-  }
+  }*/
 
   /* linear velocity regulators */
   lvr_ctx_x = create_lin_vel_regulator(0.32, 0.1, 12.0 * M_PI / 180.0);
