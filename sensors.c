@@ -169,3 +169,30 @@ int zero_altitude()
   zero_altitude_abs = pressure_to_altitude(std_sealevel_pressure, pressure.val);
   return 0;
 }
+
+/* calibration */
+int itg3200_callibration_curve(unsigned int interval_ms, unsigned int time_ms, FILE* out_file) {
+  int rc = 0;
+  sensor_sample temp = {};
+  sensor_sample_3d avels = {};
+
+  rc = fprintf(out_file, "temp, avelx, avely, avelz\n");
+  if(rc < 0) return rc;
+
+  unsigned int stop_time_ms = millis() + time_ms;
+  do {
+    rc = ITG3200_read_temp(&temp);
+    if(rc) return rc;
+    rc = ITG3200_read_angular_vel(&avels);
+    if(rc) return rc;
+
+    rc = fprintf(out_file, "%f, %f, %f, %f\n", temp.val, avels.data.x, avels.data.y, avels.data.z);
+    if(rc < 0) return rc;
+
+    delay(interval_ms);
+    printf("%f, %f, %f, %f\n", temp.val, avels.data.x, avels.data.y, avels.data.z);
+    fflush(stdout);
+  } while (millis() < stop_time_ms);
+
+  return 0;
+}

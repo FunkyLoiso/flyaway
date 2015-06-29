@@ -130,8 +130,8 @@ int ADXL345_set_zero_level() {
   int rc = select_device();
   if(rc) return rc;
 
-  sensor_sample_3d cur_data;
-  vector_double_3d avg_data;
+  sensor_sample_3d cur_data = {};
+  vector_double_3d avg_data = {};
 
   static const int count = 20;
   int i;

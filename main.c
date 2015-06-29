@@ -93,6 +93,18 @@ int loop(void) {
 
 int main(/*int argc, const char* argv[]*/)
 {
+  int r = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_5, 3);
+  if(r) printf("%d: %s", r, strerror(errno));
+  FILE* itg3200_curve_file = fopen("/tmp/curve.csv", "w");
+  if(!itg3200_curve_file) {
+    printf("%s", strerror(errno));
+  }
+  else {
+    r = itg3200_callibration_curve(1000, 900000, itg3200_curve_file);
+    if(r) printf("%d: %s", r, strerror(errno));
+  }
+  exit(r);
+
   int rc = init_sensors();
   if(rc) {
     exit(rc);

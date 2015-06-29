@@ -52,6 +52,6 @@ SOURCES += ./ADXL345.c \
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG
+}
 
 QMAKE_CFLAGS += -Wno-missing-field-initializers
-}

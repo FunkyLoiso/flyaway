@@ -9,6 +9,7 @@
  * nRF24L01+ some radio                      */
 
 #include <math.h>
+#include <stdio.h>
 
 #include "ADXL345.h"
 #include "ITG3200.h"
@@ -32,5 +33,8 @@ double pressure_to_altitude(double sealevel_pressure, double pressure);
 int init_sensors();
 int read_sensors(sensor_data* data);
 int zero_altitude();
+
+/* calibration */
+int itg3200_callibration_curve(unsigned int interval_ms,unsigned int time_ms, FILE* out_file);
 
 #endif
