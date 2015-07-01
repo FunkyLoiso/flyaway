@@ -64,6 +64,9 @@ int init_sensors()
     LOG_ERROR("Error during ITG3200 initialization. Internal code: %d,", rc);
     return rc;
   }
+  const vector_double_3d offsets = {-0.3637020291, 1.5470191733, 1.4908679306};
+  const vector_double_3d slopes = {0.0224781419, 0.0555562427, -0.0266514122};
+  ITG3200_set_callibration_curves(offsets, slopes);
 
   rc = HMC5883_init(0x1E, HMC5883_DATA_RATE_75HZ, HMC5883_GAIN_0_9GA); /* 75 Hz update, +-0.9gauss value range (Earth field is 0.31 - 0.58 gauss) */
   if(rc) {
@@ -126,14 +129,9 @@ int read_sensors(sensor_data *data)
     LOG_ERROR_ERRNO("Error reading ADXL345 data, code %d", rc);
 //    return rc;
   }
-  rc = ITG3200_read_temp(&data->itg3200_temp);
+  rc = ITG3200_read(&data->avel_data, &data->itg3200_temp);
   if(rc) {
-    LOG_ERROR_ERRNO("Error reading ITG3200 temperature data, code %d", rc);
-//    return rc;
-  }
-  rc = ITG3200_read_angular_vel(&data->avel_data);
-  if(rc) {
-    LOG_ERROR_ERRNO("Error reading ITG3200 angular velocity data, code %d", rc);
+    LOG_ERROR_ERRNO("Error reading ITG3200 data, code %d", rc);
     return rc;
   }
   rc = HMC5883_read(&data->mag_data);
@@ -181,9 +179,7 @@ int itg3200_callibration_curve(unsigned int interval_ms, unsigned int time_ms, F
 
   unsigned int stop_time_ms = millis() + time_ms;
   do {
-    rc = ITG3200_read_temp(&temp);
-    if(rc) return rc;
-    rc = ITG3200_read_angular_vel(&avels);
+    rc = ITG3200_read(&avels, &temp);
     if(rc) return rc;
 
     rc = fprintf(out_file, "%f, %f, %f, %f\n", temp.val, avels.data.x, avels.data.y, avels.data.z);

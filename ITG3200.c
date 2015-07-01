@@ -14,6 +14,10 @@ unsigned char ITG3200_adr = 0x00;
 ITG3200_FILTER_BANDWIDTH ITG3200_filter_bandwidth = -1;
 ITG3200_SAMPLERATE_DIVIDER ITG3200_divider = -1;
 
+struct {
+  vector_double_3d offsets, slopes;
+}callibration = {{0.0, 0.0, 0.0}, {1.0, 1.0, 1.0}};
+
 /* private */
 static int select_device() {
   return ioctl(ITG3200_fd, I2C_SLAVE, ITG3200_adr);
@@ -107,23 +111,33 @@ int ITG3200_read_temp(sensor_sample* temp) {
   return 0;
 }
 
-int ITG3200_read_angular_vel(sensor_sample_3d *avels) {
+int ITG3200_read(sensor_sample_3d *avels, sensor_sample* temp) {
   int rc = select_device();
   if (rc) return rc;
 
-  char buf[6];
-  buf[0] = ITG3200_GYRO_XOUT_H;
+  char buf[8];
+  buf[0] = ITG3200_TEMP_OUT_H;
 
   rc = write_device(buf, 1);
   if (1 != rc) return -1;
 
-  rc = read_device(buf, 6);
-  if (6 != rc) return -2;
-  avels->ts = cpu_cycles();
+  rc = read_device(buf, 8);
+  if (8 != rc) return -2;
+  avels->ts = temp->ts = cpu_cycles();
 
-  avels->data.x = ((double)from_bytes16(buf[1], buf[0])) / SCALE_LSB_PER_DPS;
-  avels->data.y = ((double)from_bytes16(buf[3], buf[2])) / SCALE_LSB_PER_DPS;
-  avels->data.z = ((double)from_bytes16(buf[5], buf[4])) / SCALE_LSB_PER_DPS;
+  temp->val = from_bytes16(buf[1], buf[0]) - TEMP_OFFSET; /* MSB then LSB */
+  temp->val /= TEMP_COUNTS_PER_DEG_C;
+  temp->val += TEMP_REF_DEG;
+
+  /* get angular velocities correcting thermal drift */
+  avels->data.x = ((double)from_bytes16(buf[3], buf[2])) / SCALE_LSB_PER_DPS - (callibration.slopes.x * temp->val + callibration.offsets.x);
+  avels->data.y = ((double)from_bytes16(buf[5], buf[4])) / SCALE_LSB_PER_DPS - (callibration.slopes.y * temp->val + callibration.offsets.y);
+  avels->data.z = ((double)from_bytes16(buf[7], buf[6])) / SCALE_LSB_PER_DPS - (callibration.slopes.z * temp->val + callibration.offsets.z);
 
   return 0;
+}
+
+int ITG3200_set_callibration_curves(vector_double_3d offsets, vector_double_3d slopes) {
+  callibration.offsets = offsets;
+  callibration.slopes = slopes;
 }
