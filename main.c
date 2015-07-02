@@ -69,7 +69,7 @@ int loop(void) {
   /*11. Send telemetry */
   static unsigned int last_output = 0;
   if(millis() - last_output > 500) {
-    printf("%f acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f\n",
+    printf("%f acc: %f %f %f alt: %f avel: %f %f %f bar_temp: %f guro_temp: %f mag: %f %f %f",
       cycles_to_s( raw_sensor_data.acc_data.ts ),
       raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
       raw_sensor_data.altitude.val,
@@ -77,6 +77,9 @@ int loop(void) {
       raw_sensor_data.bmp085_temp.val,
       raw_sensor_data.itg3200_temp.val,
       raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
+
+    printf(" \n");
+
     last_output = millis();
     fflush(stdout);
   }

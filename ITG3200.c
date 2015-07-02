@@ -2,6 +2,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <wiringPiI2C.h>
+#include <math.h>
 
 #include "ITG3200.h"
 #include "ITG3200_registers.h"
@@ -133,6 +134,12 @@ int ITG3200_read(sensor_sample_3d *avels, sensor_sample* temp) {
   avels->data.x = ((double)from_bytes16(buf[3], buf[2])) / SCALE_LSB_PER_DPS - (callibration.slopes.x * temp->val + callibration.offsets.x);
   avels->data.y = ((double)from_bytes16(buf[5], buf[4])) / SCALE_LSB_PER_DPS - (callibration.slopes.y * temp->val + callibration.offsets.y);
   avels->data.z = ((double)from_bytes16(buf[7], buf[6])) / SCALE_LSB_PER_DPS - (callibration.slopes.z * temp->val + callibration.offsets.z);
+
+  /* convert from deg/s to rad/s */
+  static const double deg_to_rad = M_PI/180.0;
+  avels->data.x *= deg_to_rad;
+  avels->data.y *= deg_to_rad;
+  avels->data.z *= deg_to_rad;
 
   return 0;
 }
