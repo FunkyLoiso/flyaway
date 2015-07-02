@@ -40,7 +40,6 @@ static matrix_double_3x3 quat_to_matrix(double q0, double q1, double q2, double 
 void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
 {
   const long long cur_ts = data->acc_data.ts; /* use accelerometer ts as the base one */
-  last_ts = cur_ts;
 
   /* update attitude */
   if(0 != last_ts) {
@@ -50,6 +49,7 @@ void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
                         data->mag_data.data.x, data->mag_data.data.y, data->mag_data.data.z,
                         cycles_to_s(cur_ts - last_ts));
   }
+  last_ts = cur_ts;
 
   matrix_double_3x3 rot_matrix = quat_to_matrix(q0, q1, q2, q3);
   /*  taken from android frameworks OrientationSensor.cpp
@@ -83,11 +83,11 @@ void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
       bank = 0
   */
   out_fused_data->attitude.yaw    = atan2( -rot_matrix.cols[1].x, rot_matrix.cols[0].x );
-  out_fused_data->attitude.pitch  = atan2( -rot_matrix.cols[2].y, rot_matrix.cols[2].z );
-  out_fused_data->attitude.roll   = asin( rot_matrix.cols[2].x );
+  out_fused_data->attitude.roll  = atan2( -rot_matrix.cols[2].y, rot_matrix.cols[2].z );
+  out_fused_data->attitude.pitch   = asin( rot_matrix.cols[2].x );
 
   /* calculate gravity acceleration as 1g vector pointing -z */
-  vector_double_3d gravity_acc = cross_product_double_3d(gravity_acc_I, rot_matrix.cols[2]);
+  vector_double_3d gravity_acc = rot_matrix.cols[2]; /* ...? */
 
   /* calculate linear acceleration as total acceleration - gravity acceleration */
   out_fused_data->lin_acc.x = data->acc_data.data.x - gravity_acc.x;

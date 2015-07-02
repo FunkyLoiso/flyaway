@@ -133,6 +133,16 @@ int ADXL345_set_zero_level() {
   sensor_sample_3d cur_data = {};
   vector_double_3d avg_data = {};
 
+  /* claer old offsets */
+  char buf[4];
+  buf[0] = OFSX;
+  buf[1] =  0;
+  buf[2] =  0;
+  buf[3] =  0;
+
+  rc = write_device(buf, 4);
+  if(4 != rc) return -50;
+
   static const int count = 20;
   int i;
   for(i = 0; i < count; ++i) {
@@ -142,24 +152,24 @@ int ADXL345_set_zero_level() {
     avg_data.y += cur_data.data.y;
     avg_data.z += cur_data.data.z;
 
-    delay(10);
+    delay(50);
   }
 
   avg_data.x /= (double) count;
   avg_data.y /= (double) count;
   avg_data.z /= (double) count;
 
-  char buf[4];
+  /* write new offsets */
   buf[0] = OFSX;
-  buf[1] =  -rint( avg_data.x / 0.0156 );
-  buf[2] =  -rint( avg_data.y / 0.0156 );
-  buf[3] =  -rint( avg_data.z / 0.0156 );
+  buf[1] =  -lrint( avg_data.x / 0.0156 );
+  buf[2] =  -lrint( avg_data.y / 0.0156 );
+  buf[3] =  lrint( (1.0 - avg_data.z) / 0.0156 );
 
   rc = write_device(buf, 4);
   if(4 != rc) return -100;
 
   LOG_DEBUG("ADXL345 zero level set. Errors: %f %f %f, offsets written: %f %f %f",
-            -avg_data.x, -avg_data.y, -avg_data.z,
+            avg_data.x, avg_data.y, 1-avg_data.z,
             0.0156 * buf[1], 0.0156 * buf[2], 0.0156 * buf[3]);
   return 0;
 }

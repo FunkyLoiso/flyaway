@@ -47,17 +47,17 @@ double pressure_to_altitude(double sealevel_pressure, double pressure) {
 
 int init_sensors()
 {
-  int rc = ADXL345_init(0x53, ADXL_RANGE_16g, ADXL_DATA_RATE_400); /* Our accelerometer detects on the "alternative address" 0x53. 400 Hz update */
+  int rc = ADXL345_init(0x53, ADXL_RANGE_4g, ADXL_DATA_RATE_400); /* Our accelerometer detects on the "alternative address" 0x53. 400 Hz update */
   if(rc) {
     LOG_ERROR_ERRNO("Error during ADXL345 initialization. Internal code: %d,", rc);
     return rc;
   }
 
-//  rc = ADXL345_set_zero_level();
-//  if (rc) {
-//    LOG_ERROR("Error during ADXL345 zero level setting. Internal code: %d,", rc);
-//    return rc;
-//  }
+  rc = ADXL345_set_zero_level();
+  if (rc) {
+    LOG_ERROR("Error during ADXL345 zero level setting. Internal code: %d,", rc);
+    return rc;
+  }
 
   rc = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_20, 3); /* 20 Hz lowpass filter, 1000/(3+1) = 250Hz update */
   if(rc) {
@@ -132,7 +132,7 @@ int read_sensors(sensor_data *data)
   rc = ITG3200_read(&data->avel_data, &data->itg3200_temp);
   if(rc) {
     LOG_ERROR_ERRNO("Error reading ITG3200 data, code %d", rc);
-    return rc;
+//    return rc;
   }
   rc = HMC5883_read(&data->mag_data);
   if(rc) {
