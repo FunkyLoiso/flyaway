@@ -16,7 +16,7 @@ integration_context create_integrator(double saturation_limit)
 {
   context* ret = (context*) malloc(sizeof(context));
   ret->accumulated_value = 0.0;
-  ret->saturation_limit = abs(saturation_limit);
+  ret->saturation_limit = fabs(saturation_limit);
   ret->last_time_s = 0.0;
   ret->total_time_s = 0.0;
 

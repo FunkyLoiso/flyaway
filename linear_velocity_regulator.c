@@ -19,7 +19,7 @@ lin_vel_regulator_context create_lin_vel_regulator(double Kp, double Kd, double 
   context* ctx = (context*)malloc(sizeof(context));
   ctx->Kp = Kp;
   ctx->Kd = Kd;
-  ctx->angle_limit_rad = abs(angle_limit_rad);
+  ctx->angle_limit_rad = fabs(angle_limit_rad);
 
   ctx->ictx = create_integrator(0.0);
 

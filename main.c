@@ -30,6 +30,8 @@ altitude_regulator_context alt_reg_ctx = 0;
 throttle_correction thr_correction = {};
 motors_throttles motors_thr = {};
 
+FILE* out_csv = 0;
+
 int loop(void) {
   long long start = cpu_cycles();
 
@@ -67,38 +69,68 @@ int loop(void) {
   if(rc) return rc;*/
 
   /*11. Send telemetry */
-  static unsigned int last_output = 0;
-  if(millis() - last_output > 500) {
-    printf("%f acc %f %f %f alt %f avel %f %f %f bar_temp %f guro_temp %f mag %f %f %f",
-      cycles_to_s( raw_sensor_data.acc_data.ts ),
-      raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
-      raw_sensor_data.altitude.val,
-      raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
-      raw_sensor_data.bmp085_temp.val,
-      raw_sensor_data.itg3200_temp.val,
-      raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
+//  static unsigned int last_output = 0;
+//  if(millis() - last_output > 250) {
+//    printf("%f acc %f %f %f alt %f avel %f %f %f bar_temp %f guro_temp %f mag %f %f %f",
+//      cycles_to_s( raw_sensor_data.acc_data.ts ),
+//      raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
+//      raw_sensor_data.altitude.val,
+//      raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
+//      raw_sensor_data.bmp085_temp.val,
+//      raw_sensor_data.itg3200_temp.val,
+//      raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
 
-    /* fused data */
-    printf(" roll %f pitch %f yaw %f lin_acc %f %f %f\n",
-           fused_data.attitude.roll, fused_data.attitude.pitch, fused_data.attitude.yaw,
-           fused_data.lin_acc.x, fused_data.lin_acc.y, fused_data.lin_acc.z);
+//    /* fused data */
+//    printf(" roll %f pitch %f yaw %f lin_acc %f %f %f",
+//           fused_data.attitude.roll, fused_data.attitude.pitch, fused_data.attitude.yaw,
+//           fused_data.lin_acc.x, fused_data.lin_acc.y, fused_data.lin_acc.z);
 
-    last_output = millis();
-    fflush(stdout);
-  }
+//    printf("\ncmd_vel %f %f pitch_cmd %f roll_cmd %f\n",
+//           input_cmd.cmd_vel_x, input_cmd.cmd_vel_y,
+//           pitch_cmd_rad, roll_cmd_rad);
+
+//    printf("thr");
+
+//    fprintf(out_csv, "time,accx,accy,accz,alt,avelx,avely,avelz,bar_temp,guro_temp,magx,magy,magz,roll,pitch,yaw,
+  //  lin_accx,lin_accy,lin_accz,pitch_cmd,roll_cmd,th_roll,th_pitch,th_yaw,th_alt,m_head,m_tail,m_left,m_right");
+  fprintf(out_csv, "%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f\n",
+          cycles_to_s( raw_sensor_data.acc_data.ts ),
+          raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
+          raw_sensor_data.altitude.val,
+          raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
+          raw_sensor_data.bmp085_temp.val,
+          raw_sensor_data.itg3200_temp.val,
+          raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z,
+          fused_data.attitude.roll, fused_data.attitude.pitch, fused_data.attitude.yaw,
+          fused_data.lin_acc.x, fused_data.lin_acc.y, fused_data.lin_acc.z,
+          pitch_cmd_rad, roll_cmd_rad,
+          thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
+          motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
+
+//    last_output = millis();
+//    fflush(stdout);
+//  }
 
   /*12. Perform loop frequency limiting */
-//  static const long long min_cycle_length_mcs = 5000; /* 200 Hz */
-//  const long long time_left_mcs = min_cycle_length_mcs - cycles_to_mcs( cpu_cycles() - start );
-//  if(time_left_mcs > 0) {
-//    delayMicroseconds(time_left_mcs);
-//  }
+  static const long long min_cycle_length_mcs = 5000; /* 200 Hz */
+  const long long time_left_mcs = min_cycle_length_mcs - cycles_to_mcs( cpu_cycles() - start );
+  if(time_left_mcs > 0) {
+    delayMicroseconds(time_left_mcs);
+  }
+
+  static int counter = 0;
+  if(++counter > 24000) return -1; /*stop after ~2 minutes*/
 
   return 0;
 }
 
 int main(/*int argc, const char* argv[]*/)
 {
+  out_csv = fopen("/tmp/out.csv", "w");
+  if(!out_csv) {
+      printf("%s", strerror(errno));
+  }
+  fprintf(out_csv, "time;accx;accy;accz;alt;avelx;avely;avelz;bar_temp;guro_temp;magx;magy;magz;roll;pitch;yaw;lin_accx;lin_accy;lin_accz;pitch_cmd;roll_cmd;th_roll;th_pitch;th_yaw;th_alt;m_head;m_tail;m_left;m_right\n");
 //  int r = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_5, 3);
 //  if(r) printf("%d: %s", r, strerror(errno));
 //  FILE* itg3200_curve_file = fopen("/tmp/curve.csv", "w");
@@ -163,6 +195,8 @@ int main(/*int argc, const char* argv[]*/)
   destroy_angle_regulator(ar_ctx_yaw);
 
   destroy_altitude_regulator(alt_reg_ctx);
+
+  fclose(out_csv);
 
   return 0;
 }
