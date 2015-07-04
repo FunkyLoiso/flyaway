@@ -1,0 +1,2 @@
+- manage to get timestamps from cpu cycle counter or protect from micros overflow
+- solve yaw -pi <-> pi jump
