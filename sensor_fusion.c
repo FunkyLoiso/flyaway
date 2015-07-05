@@ -44,8 +44,8 @@ void fuse_sensor_data(sensor_data* data, fused_sensor_data* out_fused_data)
   /* update attitude */
   if(0 != last_ts) {
     /* update attitude starting with the second call */
-    MadgwickAHRSupdate( data->avel_data.data.x, data->avel_data.data.y, data->avel_data.data.z,
-                        data->acc_data.data.x, data->acc_data.data.y, data->acc_data.data.z,
+    MadgwickAHRSupdate( data->acc_data.data.x, data->acc_data.data.y, data->acc_data.data.z,
+                        data->avel_data.data.x, data->avel_data.data.y, data->avel_data.data.z,
                         data->mag_data.data.x, data->mag_data.data.y, data->mag_data.data.z,
                         cycles_to_s(cur_ts - last_ts));
   }

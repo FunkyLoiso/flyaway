@@ -42,6 +42,7 @@ void destroy_lin_vel_regulator(lin_vel_regulator_context ctx)
  */
 double regulate_lin_vel(lin_vel_regulator_context ctx, double desired_vel, double lin_acc, double time_s)
 {
+  lin_acc *= 9.81; /* convert g to m/s^2 */
   context* ctx_ = (context*)ctx;
   double lin_vel = integrate(&ctx_->ictx, lin_acc, time_s);
 

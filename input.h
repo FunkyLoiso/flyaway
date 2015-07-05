@@ -9,7 +9,7 @@ typedef struct {
 } input_commands_t;
 
 void read_test_inputs(input_commands_t* out_cmds){
-  out_cmds->cmd_h = 1.0;
+  out_cmds->cmd_h = 0.0;
   out_cmds->cmd_yaw = 0.0;
   out_cmds->cmd_vel_x = 0.0;
   out_cmds->cmd_vel_y = 0.0;

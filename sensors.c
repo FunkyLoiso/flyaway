@@ -148,7 +148,7 @@ int read_sensors(sensor_data *data)
     LOG_ERROR_ERRNO("Error reading BMP085 pressure, code %d", rc);
     return rc;
   }
-  data->altitude.val = pressure_to_altitude(std_sealevel_pressure, pressure.val);
+  data->altitude.val = pressure_to_altitude(std_sealevel_pressure, pressure.val) - zero_altitude_abs;
   data->altitude.ts = pressure.ts;
 
   return 0;
@@ -158,13 +158,35 @@ int zero_altitude()
 {
   int is_value_new;
   sensor_sample_int32 pressure;
-  int rc = BMP085_read_press(&pressure, &is_value_new);
+  long long avg_pressure = 0;
+  int values_obtained = 0;
+
+  int rc = BMP085_schedule_press_temp_update();
   if(rc) {
-    LOG_ERROR_ERRNO("Error reading BMP085 pressure to zero altitude, code %d", rc);
+    LOG_ERROR_ERRNO("Error scheduling BMP085 update to zero altitude, code %d", rc);
     return rc;
   }
 
-  zero_altitude_abs = pressure_to_altitude(std_sealevel_pressure, pressure.val);
+  do {
+    rc = BMP085_read_press(&pressure, &is_value_new);
+    if(rc) {
+      LOG_ERROR_ERRNO("Error reading BMP085 pressure to zero altitude, code %d", rc);
+      return rc;
+    }
+    if(is_value_new) {
+      avg_pressure += pressure.val;
+      ++values_obtained;
+      rc = BMP085_schedule_press_temp_update();
+      if(rc) {
+        LOG_ERROR_ERRNO("Error scheduling BMP085 update to zero altitude, code %d", rc);
+        return rc;
+      }
+    }
+    delay(50);
+  } while(values_obtained < 20);
+
+  zero_altitude_abs = pressure_to_altitude(std_sealevel_pressure, avg_pressure/20);
+  LOG_DEBUG("Zero altitude calculated to be %f m", zero_altitude_abs);
   return 0;
 }
 

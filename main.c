@@ -15,6 +15,11 @@
 #include "throttle_mixing.h"
 #include "motors_controller.h"
 
+#include "MadgwickAHRS.h"
+
+#define WRITE_STDOUT
+//#define WRITE_FILE
+
 /* 
  *  Rules:
  *  1. No memory allocation
@@ -30,7 +35,9 @@ altitude_regulator_context alt_reg_ctx = 0;
 throttle_correction thr_correction = {};
 motors_throttles motors_thr = {};
 
+#ifdef WRITE_FILE
 FILE* out_csv = 0;
+#endif
 
 int loop(void) {
   long long start = cpu_cycles();
@@ -41,6 +48,10 @@ int loop(void) {
   /* 2. Read sensors. */
   int rc = read_sensors(&raw_sensor_data);
   if(rc) return rc;
+
+  raw_sensor_data.avel_data.data = (vector_double_3d){};
+  raw_sensor_data.acc_data.data = (vector_double_3d){0.0, 0.0, 1.0};
+  raw_sensor_data.mag_data.data = (vector_double_3d){0.5, 0.0, 0.0};
 
   /* 3. Calculate sensor fusion data */
   fuse_sensor_data(&raw_sensor_data, &fused_data);
@@ -69,28 +80,38 @@ int loop(void) {
   if(rc) return rc;*/
 
   /*11. Send telemetry */
-//  static unsigned int last_output = 0;
-//  if(millis() - last_output > 250) {
-//    printf("%f acc %f %f %f alt %f avel %f %f %f bar_temp %f guro_temp %f mag %f %f %f",
-//      cycles_to_s( raw_sensor_data.acc_data.ts ),
-//      raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
-//      raw_sensor_data.altitude.val,
-//      raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
-//      raw_sensor_data.bmp085_temp.val,
-//      raw_sensor_data.itg3200_temp.val,
-//      raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
+#ifdef WRITE_STDOUT
+  static unsigned int last_output = 0;
+  if(millis() - last_output > 250) {
+    printf("%f acc %f %f %f alt %f avel %f %f %f bar_temp %f guro_temp %f mag %f %f %f",
+      cycles_to_s( raw_sensor_data.acc_data.ts ),
+      raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
+      raw_sensor_data.altitude.val,
+      raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
+      raw_sensor_data.bmp085_temp.val,
+      raw_sensor_data.itg3200_temp.val,
+      raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
 
-//    /* fused data */
-//    printf(" roll %f pitch %f yaw %f lin_acc %f %f %f",
-//           fused_data.attitude.roll, fused_data.attitude.pitch, fused_data.attitude.yaw,
-//           fused_data.lin_acc.x, fused_data.lin_acc.y, fused_data.lin_acc.z);
+    printf("\n%f %f %f %f\n", q0, q1, q2, q3);
 
-//    printf("\ncmd_vel %f %f pitch_cmd %f roll_cmd %f\n",
-//           input_cmd.cmd_vel_x, input_cmd.cmd_vel_y,
-//           pitch_cmd_rad, roll_cmd_rad);
+    /* fused data */
+    printf(" roll %f pitch %f yaw %f lin_acc %f %f %f",
+           fused_data.attitude.roll, fused_data.attitude.pitch, fused_data.attitude.yaw,
+           fused_data.lin_acc.x, fused_data.lin_acc.y, fused_data.lin_acc.z);
 
-//    printf("thr");
+    printf("\ncmd_vel %f %f pitch_cmd %f roll_cmd %f\n",
+           input_cmd.cmd_vel_x, input_cmd.cmd_vel_y,
+           pitch_cmd_rad, roll_cmd_rad);
 
+    printf("th_roll %f th_pitch %f th_yaw %f th_alt %f m_head %f m_tail %f m_left %f m_right %f\n\n",
+           thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
+           motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
+
+    last_output = millis();
+    fflush(stdout);
+  }
+#endif
+#ifdef WRITE_FILE
 //    fprintf(out_csv, "time,accx,accy,accz,alt,avelx,avely,avelz,bar_temp,guro_temp,magx,magy,magz,roll,pitch,yaw,
   //  lin_accx,lin_accy,lin_accz,pitch_cmd,roll_cmd,th_roll,th_pitch,th_yaw,th_alt,m_head,m_tail,m_left,m_right");
   fprintf(out_csv, "%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f;%f\n",
@@ -106,10 +127,7 @@ int loop(void) {
           pitch_cmd_rad, roll_cmd_rad,
           thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
           motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
-
-//    last_output = millis();
-//    fflush(stdout);
-//  }
+#endif
 
   /*12. Perform loop frequency limiting */
   static const long long min_cycle_length_mcs = 5000; /* 200 Hz */
@@ -118,19 +136,23 @@ int loop(void) {
     delayMicroseconds(time_left_mcs);
   }
 
+#ifdef WRITE_FILE
   static int counter = 0;
-  if(++counter > 24000) return -1; /*stop after ~2 minutes*/
+  if(++counter > 2400) return -1; /*stop after ~2 minutes*/
+#endif
 
   return 0;
 }
 
 int main(/*int argc, const char* argv[]*/)
 {
+#ifdef WRITE_FILE
   out_csv = fopen("/tmp/out.csv", "w");
   if(!out_csv) {
       printf("%s", strerror(errno));
   }
   fprintf(out_csv, "time;accx;accy;accz;alt;avelx;avely;avelz;bar_temp;guro_temp;magx;magy;magz;roll;pitch;yaw;lin_accx;lin_accy;lin_accz;pitch_cmd;roll_cmd;th_roll;th_pitch;th_yaw;th_alt;m_head;m_tail;m_left;m_right\n");
+#endif
 //  int r = ITG3200_init(0x68, ITG3200_FILTER_BANDWIDTH_5, 3);
 //  if(r) printf("%d: %s", r, strerror(errno));
 //  FILE* itg3200_curve_file = fopen("/tmp/curve.csv", "w");
@@ -161,8 +183,8 @@ int main(/*int argc, const char* argv[]*/)
   }*/
 
   /* linear velocity regulators */
-  lvr_ctx_x = create_lin_vel_regulator(0.32, 0.1, 12.0 * M_PI / 180.0);
-  lvr_ctx_y = create_lin_vel_regulator(0.32, 0.1, 12.0 * M_PI / 180.0);
+  lvr_ctx_x = create_lin_vel_regulator(0.32 * M_PI / 180.0, 0.1 * M_PI / 180.0, 12.0 * M_PI / 180.0);
+  lvr_ctx_y = create_lin_vel_regulator(0.32 * M_PI / 180.0, 0.1 * M_PI / 180.0, 12.0 * M_PI / 180.0);
 
   if(0 == lvr_ctx_x || 0 == lvr_ctx_y) {
     LOG_ERROR("Error creating linear velocity regulators");
@@ -170,9 +192,9 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   /* angle regulators */
-  ar_ctx_pitch = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
-  ar_ctx_roll = create_angle_regulator(2.0, 1.1, 1.2, 1.0);
-  ar_ctx_yaw = create_angle_regulator(4.0, 0.5, 3.5, 1.0);
+  ar_ctx_pitch = create_angle_regulator(2.0 * 180.0 / M_PI, 1.1 * 180.0 / M_PI, 1.2 * 180.0 / M_PI, 1.0);
+  ar_ctx_roll = create_angle_regulator(2.0 * 180.0 / M_PI, 1.1 * 180.0 / M_PI, 1.2 * 180.0 / M_PI, 1.0);
+  ar_ctx_yaw = create_angle_regulator(4.0 * 180.0 / M_PI, 0.5 * 180.0 / M_PI, 3.5 * 180.0 / M_PI, 1.0);
   if(0 == ar_ctx_roll || 0 == ar_ctx_pitch || 0 == ar_ctx_yaw) {
     LOG_ERROR("Error creating angle regulators");
     exit(20);
@@ -185,6 +207,7 @@ int main(/*int argc, const char* argv[]*/)
     exit(30);
   }
 
+  fflush(stdout);
   while( !loop() );
 
   destroy_lin_vel_regulator(lvr_ctx_x);
@@ -196,7 +219,9 @@ int main(/*int argc, const char* argv[]*/)
 
   destroy_altitude_regulator(alt_reg_ctx);
 
+#ifdef WRITE_FILE
   fclose(out_csv);
+#endif
 
   return 0;
 }
