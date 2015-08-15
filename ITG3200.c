@@ -144,7 +144,7 @@ int ITG3200_read(sensor_sample_3d *avels, sensor_sample* temp) {
   return 0;
 }
 
-int ITG3200_set_callibration_curves(vector_double_3d offsets, vector_double_3d slopes) {
+void ITG3200_set_callibration_curves(vector_double_3d offsets, vector_double_3d slopes) {
   callibration.offsets = offsets;
   callibration.slopes = slopes;
 }

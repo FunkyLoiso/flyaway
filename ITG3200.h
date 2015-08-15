@@ -20,6 +20,6 @@ typedef unsigned char ITG3200_SAMPLERATE_DIVIDER;
 int ITG3200_init(unsigned char adr, ITG3200_FILTER_BANDWIDTH bandwidth, ITG3200_SAMPLERATE_DIVIDER divider);
 int ITG3200_get_samplerate();
 int ITG3200_read(sensor_sample_3d* avels, sensor_sample* temp);
-int ITG3200_set_callibration_curves(vector_double_3d offsets, vector_double_3d slopes);
+void ITG3200_set_callibration_curves(vector_double_3d offsets, vector_double_3d slopes);
 
 #endif

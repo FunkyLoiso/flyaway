@@ -49,10 +49,6 @@ int loop(void) {
   int rc = read_sensors(&raw_sensor_data);
   if(rc) return rc;
 
-  raw_sensor_data.avel_data.data = (vector_double_3d){};
-  raw_sensor_data.acc_data.data = (vector_double_3d){0.0, 0.0, 1.0};
-  raw_sensor_data.mag_data.data = (vector_double_3d){0.5, 0.0, 0.0};
-
   /* 3. Calculate sensor fusion data */
   fuse_sensor_data(&raw_sensor_data, &fused_data);
 
@@ -99,14 +95,15 @@ int loop(void) {
            fused_data.attitude.roll, fused_data.attitude.pitch, fused_data.attitude.yaw,
            fused_data.lin_acc.x, fused_data.lin_acc.y, fused_data.lin_acc.z);
 
-    printf("\ncmd_vel %f %f pitch_cmd %f roll_cmd %f\n",
-           input_cmd.cmd_vel_x, input_cmd.cmd_vel_y,
-           pitch_cmd_rad, roll_cmd_rad);
+//    printf("\ncmd_vel %f %f pitch_cmd %f roll_cmd %f\n",
+//           input_cmd.cmd_vel_x, input_cmd.cmd_vel_y,
+//           pitch_cmd_rad, roll_cmd_rad);
 
-    printf("th_roll %f th_pitch %f th_yaw %f th_alt %f m_head %f m_tail %f m_left %f m_right %f\n\n",
-           thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
-           motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
+//    printf("th_roll %f th_pitch %f th_yaw %f th_alt %f m_head %f m_tail %f m_left %f m_right %f\n\n",
+//           thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
+//           motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
 
+    printf("\n");
     last_output = millis();
     fflush(stdout);
   }
@@ -138,7 +135,7 @@ int loop(void) {
 
 #ifdef WRITE_FILE
   static int counter = 0;
-  if(++counter > 2400) return -1; /*stop after ~2 minutes*/
+  if(++counter > 12000) return -1; /*stop after ~2 minutes*/
 #endif
 
   return 0;
@@ -170,17 +167,12 @@ int main(/*int argc, const char* argv[]*/)
     exit(rc);
   }
 
-  rc = zero_altitude();
-  if(rc) {
-    exit(rc);
-  }
-
   /* default address is 0100 0000 */
-  /*rc = init_motors_controller(0x40, 0, 4, 8, 12, 0.3, 0.8, 200);
+  rc = init_motors_controller(0x40, 0, 4, 8, 15, 0.0, 1.0, 200);
   if(rc) {
     LOG_ERROR_ERRNO("Error during PCA9685 init. Internal code: %d,", rc);
     exit(rc);
-  }*/
+  }
 
   /* linear velocity regulators */
   lvr_ctx_x = create_lin_vel_regulator(0.32 * M_PI / 180.0, 0.1 * M_PI / 180.0, 12.0 * M_PI / 180.0);
@@ -208,7 +200,15 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   fflush(stdout);
-  while( !loop() );
+//  while( !loop() );
+  for(;;) {
+    int period = 2000;
+    motors_thr.m_head = millis() % period;
+    motors_thr.m_head /= period/2;
+    motors_thr.m_head -= 1.0;
+    motors_thr.m_head = fabs(motors_thr.m_head);
+    set_motors_throttles(motors_thr);
+  }
 
   destroy_lin_vel_regulator(lvr_ctx_x);
   destroy_lin_vel_regulator(lvr_ctx_y);

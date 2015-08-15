@@ -102,6 +102,13 @@ int init_motors_controller(unsigned char adr, int front_ch, int tail_ch, int lef
   rc = write_device(buf, 2);
   if(2 != rc) return -70;
 
+  /* set invrt  and reset outdrv (see sheet @ 29) */
+//  buf[0] = PCA9685_MODE2;
+//  buf[1] = MODE2_INVRT;
+//  rc = write_device(buf, 2);
+//  if(2 != rc) return -80;
+
+  LOG_DEBUG("PCA9685 on adr 0x%x init OK", adr);
   return 0;
 }
 
@@ -116,25 +123,25 @@ int set_motors_throttles(motors_throttles throttles)
   if(rc) return rc;
 
   char buf[3];
-  buf[0] = LED_N_OFF_H(channels.front);
-  buf[1] = head_off >> 8;
-  buf[2] = head_off & 0xff;
+  buf[0] = LED_N_OFF_L(channels.front);
+  buf[2] = head_off >> 8;
+  buf[1] = head_off & 0xff;
   rc = write_device(buf, 3);
   if(3 != rc) return -10;
 
-  buf[0] = LED_N_OFF_H(channels.tail);
+  buf[0] = LED_N_OFF_L(channels.tail);
   buf[1] = tail_off >> 8;
   buf[2] = tail_off & 0xff;
   rc = write_device(buf, 3);
   if(3 != rc) return -20;
 
-  buf[0] = LED_N_OFF_H(channels.left);
+  buf[0] = LED_N_OFF_L(channels.left);
   buf[1] = left_off >> 8;
   buf[2] = left_off & 0xff;
   rc = write_device(buf, 3);
   if(3 != rc) return -30;
 
-  buf[0] = LED_N_OFF_H(channels.right);
+  buf[0] = LED_N_OFF_L(channels.right);
   buf[1] = right_off >> 8;
   buf[2] = right_off & 0xff;
   rc = write_device(buf, 3);

@@ -16,10 +16,6 @@ typedef struct {
 } orientation;
 
 typedef struct {
-  double q0, q1, q2, q3;
-} vector_double_4d;
-
-typedef struct {
   vector_double_3d cols[3];
 } matrix_double_3x3;
 
