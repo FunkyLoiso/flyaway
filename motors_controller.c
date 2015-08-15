@@ -33,11 +33,11 @@ static int write_device(char* buf, int len) {
   return write(PCA9685_fd, buf, len);
 }
 
-/*
+
 static int read_device(char* buf, int len) {
   return read(PCA9685_fd, buf, len);
 }
-*/
+
 
 static int map_throttle(double throttle) {
   return rint( (throttle * duty_cycle_limits.width + duty_cycle_limits.min) * 4096 );
@@ -84,10 +84,16 @@ int init_motors_controller(unsigned char adr, int front_ch, int tail_ch, int lef
   uint8_t prescale_val = rint(clock_freq / 4096 / pwm_freq) - 1;
 
   char buf[2];
+  /* save old mode one */
+  buf[0] = PCA9685_MODE1;
+  int rc = read_device(buf, 1);
+  if(1 != rc) return -45;
+  char old_mode_one = buf[0];
+
   /* set mode to sleep, set frequency, restart */
   buf[0] = PCA9685_MODE1;
-  buf[1] = MODE1_SLEEP;
-  int rc = write_device(buf, 2);
+  buf[1] = old_mode_one | MODE1_SLEEP;
+  rc = write_device(buf, 2);
   if(2 != rc) return -50;
   delay(2); /* wait a bit for the device to go to sleep */
   
@@ -98,13 +104,13 @@ int init_motors_controller(unsigned char adr, int front_ch, int tail_ch, int lef
 
   /* set auto increment mode and remove sleep bit */
   buf[0] = PCA9685_MODE1;
-  buf[1] = MODE1_AUTO_INCREMENT;
+  buf[1] = old_mode_one | MODE1_AUTO_INCREMENT;
   rc = write_device(buf, 2);
   if(2 != rc) return -70;
 
   /* set invrt  and reset outdrv (see sheet @ 29) */
 //  buf[0] = PCA9685_MODE2;
-//  buf[1] = MODE2_INVRT;
+//  buf[1] = 0/*MODE2_INVRT*/ /*| MODE2_OUTDRV*/;
 //  rc = write_device(buf, 2);
 //  if(2 != rc) return -80;
 
@@ -124,26 +130,26 @@ int set_motors_throttles(motors_throttles throttles)
 
   char buf[3];
   buf[0] = LED_N_OFF_L(channels.front);
-  buf[2] = head_off >> 8;
   buf[1] = head_off & 0xff;
+  buf[2] = head_off >> 8;
   rc = write_device(buf, 3);
   if(3 != rc) return -10;
 
   buf[0] = LED_N_OFF_L(channels.tail);
-  buf[1] = tail_off >> 8;
-  buf[2] = tail_off & 0xff;
+  buf[1] = tail_off & 0xff;
+  buf[2] = tail_off >> 8;
   rc = write_device(buf, 3);
   if(3 != rc) return -20;
 
   buf[0] = LED_N_OFF_L(channels.left);
-  buf[1] = left_off >> 8;
-  buf[2] = left_off & 0xff;
+  buf[1] = left_off & 0xff;
+  buf[2] = left_off >> 8;
   rc = write_device(buf, 3);
   if(3 != rc) return -30;
 
   buf[0] = LED_N_OFF_L(channels.right);
-  buf[1] = right_off >> 8;
-  buf[2] = right_off & 0xff;
+  buf[1] = right_off & 0xff;
+  buf[2] = right_off >> 8;
   rc = write_device(buf, 3);
   if(3 != rc) return -40;
 
