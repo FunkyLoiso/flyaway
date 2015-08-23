@@ -104,7 +104,7 @@ int init_motors_controller(unsigned char adr, int front_ch, int tail_ch, int lef
 
   /* set auto increment mode and remove sleep bit */
   buf[0] = PCA9685_MODE1;
-  buf[1] = old_mode_one | MODE1_AUTO_INCREMENT;
+  buf[1] = /*old_mode_one |*/ MODE1_AUTO_INCREMENT;
   rc = write_device(buf, 2);
   if(2 != rc) return -70;
 

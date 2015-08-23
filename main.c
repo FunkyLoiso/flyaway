@@ -4,6 +4,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <unistd.h>
+
 #include "logging.h"
 #include "cpu_cycles.h"
 #include "input.h"
@@ -39,11 +41,23 @@ motors_throttles motors_thr = {};
 FILE* out_csv = 0;
 #endif
 
+int kbhit()
+{
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds); //STDIN_FILENO is 0
+    select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
+    return FD_ISSET(STDIN_FILENO, &fds);
+}
+
 int loop(void) {
   long long start = cpu_cycles();
 
   /* 1. Read operator commands. */
-  read_test_inputs(&input_cmd);
+//  read_test_inputs(&input_cmd);
 
   /* 2. Read sensors. */
   int rc = read_sensors(&raw_sensor_data);
@@ -53,8 +67,10 @@ int loop(void) {
   fuse_sensor_data(&raw_sensor_data, &fused_data);
 
   /* 4. Perform linear velocities regulation */
-  double pitch_cmd_rad = regulate_lin_vel(lvr_ctx_x, input_cmd.cmd_vel_x, fused_data.lin_acc.x, fused_data.time_s);
-  double roll_cmd_rad = regulate_lin_vel(lvr_ctx_y, input_cmd.cmd_vel_y, fused_data.lin_acc.y, fused_data.time_s);
+  double pitch_cmd_rad = 0.0;
+  double roll_cmd_rad = 0.0;
+  pitch_cmd_rad = regulate_lin_vel(lvr_ctx_x, input_cmd.cmd_vel_x, fused_data.lin_acc.x, fused_data.time_s);
+  roll_cmd_rad = regulate_lin_vel(lvr_ctx_y, input_cmd.cmd_vel_y, fused_data.lin_acc.y, fused_data.time_s);
 
   /* 5. Perform roll regulation */
   thr_correction.d_throttle_roll = regulate_angle(ar_ctx_roll, roll_cmd_rad, fused_data.attitude.roll, fused_data.avel.x, fused_data.time_s);
@@ -66,29 +82,46 @@ int loop(void) {
   thr_correction.d_throttle_yaw = regulate_angle(ar_ctx_yaw, input_cmd.cmd_yaw, fused_data.attitude.yaw, fused_data.avel.z, fused_data.time_s);
 
   /* 8. Perform altitude regulation */
-  thr_correction.d_throttle_alt = regulate_altitude(alt_reg_ctx, input_cmd.cmd_h, fused_data.altitude, fused_data.time_s);
+//  thr_correction.d_throttle_alt = regulate_altitude(alt_reg_ctx, input_cmd.cmd_h, fused_data.altitude, fused_data.time_s);
+
+  if(kbhit()) {
+    double input = 0.0;
+    rc = scanf("%lf", &input);
+    printf("got input %lf\n", input);
+    thr_correction.d_throttle_alt = input;
+
+    input_cmd.cmd_yaw = fused_data.attitude.yaw;
+  }
+
+  if(thr_correction.d_throttle_alt < 1.0) { // turn rotors off
+    thr_correction = (throttle_correction) {};
+  }
 
   /* 9. Do control signal mixing */
   mix_throttles(&thr_correction, &motors_thr);
 
   /*10. Set motor controller PWMs */
-  /*rc = set_motors_throttles(motors_thr);
-  if(rc) return rc;*/
+  motors_thr.m_head /= 100.0;
+  motors_thr.m_left /= 100.0;
+  motors_thr.m_right /= 100.0;
+  motors_thr.m_tail /= 100.0;
+  rc = set_motors_throttles(motors_thr);
+  if(rc) return rc;
 
   /*11. Send telemetry */
 #ifdef WRITE_STDOUT
   static unsigned int last_output = 0;
   if(millis() - last_output > 250) {
-    printf("%f acc %f %f %f alt %f avel %f %f %f bar_temp %f guro_temp %f mag %f %f %f",
-      cycles_to_s( raw_sensor_data.acc_data.ts ),
-      raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
-      raw_sensor_data.altitude.val,
-      raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
-      raw_sensor_data.bmp085_temp.val,
-      raw_sensor_data.itg3200_temp.val,
-      raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
+//    printf("%f acc %f %f %f alt %f avel %f %f %f bar_temp %f guro_temp %f mag %f %f %f",
+//      cycles_to_s( raw_sensor_data.acc_data.ts ),
+//      raw_sensor_data.acc_data.data.x, raw_sensor_data.acc_data.data.y, raw_sensor_data.acc_data.data.z,
+//      raw_sensor_data.altitude.val,
+//      raw_sensor_data.avel_data.data.x, raw_sensor_data.avel_data.data.y, raw_sensor_data.avel_data.data.z,
+//      raw_sensor_data.bmp085_temp.val,
+//      raw_sensor_data.itg3200_temp.val,
+//      raw_sensor_data.mag_data.data.x, raw_sensor_data.mag_data.data.y, raw_sensor_data.mag_data.data.z);
 
-    printf("\n%f %f %f %f\n", q0, q1, q2, q3);
+//    printf("\n%f %f %f %f\n", q0, q1, q2, q3);
 
     /* fused data */
     printf(" roll %f pitch %f yaw %f lin_acc %f %f %f",
@@ -99,9 +132,9 @@ int loop(void) {
 //           input_cmd.cmd_vel_x, input_cmd.cmd_vel_y,
 //           pitch_cmd_rad, roll_cmd_rad);
 
-//    printf("th_roll %f th_pitch %f th_yaw %f th_alt %f m_head %f m_tail %f m_left %f m_right %f\n\n",
-//           thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
-//           motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
+    printf("\nth_roll %f th_pitch %f th_yaw %f th_alt %f m_head %f m_tail %f m_left %f m_right %f\n\n",
+           thr_correction.d_throttle_roll, thr_correction.d_throttle_pitch, thr_correction.d_throttle_yaw, thr_correction.d_throttle_alt,
+           motors_thr.m_head, motors_thr.m_tail, motors_thr.m_left, motors_thr.m_right);
 
     printf("\n");
     last_output = millis();
@@ -168,7 +201,7 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   /* default address is 0100 0000 */
-  rc = init_motors_controller(0x40, 0, 4, 8, 15, 0.0, 1.0, 200);
+  rc = init_motors_controller(0x40, 0, 4, 8, 12, 0.08, 0.098, 60);
   if(rc) {
     LOG_ERROR_ERRNO("Error during PCA9685 init. Internal code: %d,", rc);
     exit(rc);
@@ -184,9 +217,14 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   /* angle regulators */
-  ar_ctx_pitch = create_angle_regulator(2.0 * 180.0 / M_PI, 1.1 * 180.0 / M_PI, 1.2 * 180.0 / M_PI, 1.0);
-  ar_ctx_roll = create_angle_regulator(2.0 * 180.0 / M_PI, 1.1 * 180.0 / M_PI, 1.2 * 180.0 / M_PI, 1.0);
-  ar_ctx_yaw = create_angle_regulator(4.0 * 180.0 / M_PI, 0.5 * 180.0 / M_PI, 3.5 * 180.0 / M_PI, 1.0);
+  double mult = 180.0/ M_PI / 5.0;
+  double pr_Kp = 2.0 * mult;
+  double pr_Ki = 1.1 * mult;
+  double pr_Kd = 1.2 * mult;
+  double pr_int_limit = 1.0;
+  ar_ctx_pitch = create_angle_regulator(pr_Kp, pr_Ki, pr_Kd, pr_int_limit);
+  ar_ctx_roll = create_angle_regulator(pr_Kp, pr_Ki, pr_Kd, pr_int_limit);
+  ar_ctx_yaw = create_angle_regulator(4.0 * 180.0 / M_PI / 5.0, 0.5 * 180.0 / M_PI / 5.0, 3.5 * 180.0 / M_PI / 5.0, 1.0);
   if(0 == ar_ctx_roll || 0 == ar_ctx_pitch || 0 == ar_ctx_yaw) {
     LOG_ERROR("Error creating angle regulators");
     exit(20);
@@ -200,15 +238,30 @@ int main(/*int argc, const char* argv[]*/)
   }
 
   fflush(stdout);
-//  while( !loop() );
-  for(;;) {
-    int period = 2000;
-    motors_thr.m_head = millis() % period;
-    motors_thr.m_head /= period/2;
-    motors_thr.m_head -= 1.0;
-    motors_thr.m_head = fabs(motors_thr.m_head);
-    set_motors_throttles(motors_thr);
-  }
+
+  double input = 0.0;
+  motors_thr.m_head = input;
+  motors_thr.m_tail = input;
+  motors_thr.m_left = input;
+  motors_thr.m_right = input;
+
+  set_motors_throttles(motors_thr);
+  printf("Set throttle to 0, waiting 5 seconds\n");
+  delay(5000);
+
+  printf("Go!\n");
+
+  while( !loop() );
+//  for(;;) {
+//    double input = 0.084;
+//    rc = scanf("%lf", &input);
+//    printf("got input %lf\n", input);
+//    motors_thr.m_head = input;
+//    motors_thr.m_tail = input;
+//    motors_thr.m_left = input;
+//    motors_thr.m_right = input;
+//    set_motors_throttles(motors_thr);
+//  }
 
   destroy_lin_vel_regulator(lvr_ctx_x);
   destroy_lin_vel_regulator(lvr_ctx_y);
