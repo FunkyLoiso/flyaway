@@ -30,7 +30,8 @@ HEADERS += ./ADXL345.h \
     differentiaton.h \
     motors_controller.h \
     PCA9685_registers.h \
-    throttle_mixing.h
+    throttle_mixing.h \
+    sixaxis.h
 SOURCES += ./ADXL345.c \
     ./HMC5883.c \
     ./ITG3200.c \
@@ -48,7 +49,8 @@ SOURCES += ./ADXL345.c \
     throttle_mixing.c \
     cpu_cycles.c \
     vector.c \
-    twos_complement.c
+    twos_complement.c \
+    sixaxis.c
 
 CONFIG(debug, debug|release) {
   DEFINES += _DEBUG

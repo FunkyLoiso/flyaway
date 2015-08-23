@@ -2,6 +2,8 @@
 #define LOGGING_H_INCLUDED
 
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 #define LOG_ERROR(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); }
 #define LOG_ERROR_ERRNO(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, " errno: %d\nstrerror: \"%s\"\n", errno, strerror(errno)); }

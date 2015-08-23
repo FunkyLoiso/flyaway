@@ -16,6 +16,7 @@
 #include "altitude_regulator.h"
 #include "throttle_mixing.h"
 #include "motors_controller.h"
+#include "sixaxis.h"
 
 #include "MadgwickAHRS.h"
 
@@ -37,6 +38,9 @@ altitude_regulator_context alt_reg_ctx = 0;
 throttle_correction thr_correction = {};
 motors_throttles motors_thr = {};
 
+sixaxis_button_state buttons = {};
+sixaxis_axis_state axes = {};
+
 #ifdef WRITE_FILE
 FILE* out_csv = 0;
 #endif
@@ -53,14 +57,37 @@ int kbhit()
     return FD_ISSET(STDIN_FILENO, &fds);
 }
 
+void on_button(uint8_t button, bool is_pressed) {
+  if(!is_pressed) return;
+  switch(button) {
+    case SIXAXIS_UP:
+      thr_correction.d_throttle_alt += 5.0;
+      break;
+
+  case SIXAXIS_DOWN:
+    thr_correction.d_throttle_alt -= 5.0;
+    break;
+
+  case SIXAXIS_CIRCLE:
+    thr_correction.d_throttle_alt = 0.0;
+    break;
+
+  default: return;
+  }
+
+  printf("Altitide throttle is %lf\n", thr_correction.d_throttle_alt);
+}
+
 int loop(void) {
   long long start = cpu_cycles();
 
   /* 1. Read operator commands. */
 //  read_test_inputs(&input_cmd);
+  int rc = sixaxis_update(&buttons, &axes);
+  if(rc) return rc;
 
   /* 2. Read sensors. */
-  int rc = read_sensors(&raw_sensor_data);
+  rc = read_sensors(&raw_sensor_data);
   if(rc) return rc;
 
   /* 3. Calculate sensor fusion data */
@@ -235,6 +262,12 @@ int main(/*int argc, const char* argv[]*/)
   if(0 == alt_reg_ctx) {
     LOG_ERROR("Error creating altitude regulator");
     exit(30);
+  }
+
+  /* init sixaxis */
+  rc = sixaxis_init("/dev/input/js0", &on_button);
+  if(rc) {
+    exit(rc);
   }
 
   fflush(stdout);
